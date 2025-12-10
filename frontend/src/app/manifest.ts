@@ -1,0 +1,17 @@
+import { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'SepYap - Price Comparison',
+    short_name: 'SepYap',
+    description: 'Compare grocery prices across all major Turkish markets and find the cheapest shopping cart',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#10b981',
+    categories: ['shopping', 'utilities'],
+    lang: 'tr',
+    dir: 'ltr',
+  };
+}
+

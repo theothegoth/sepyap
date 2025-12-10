@@ -1,0 +1,123 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useLanguage } from '../contexts/LanguageContext';
+import ThemeToggle from './ThemeToggle';
+import LanguageSwitcher from './LanguageSwitcher';
+import { memo } from 'react';
+
+const Navigation = memo(function Navigation() {
+  const { t } = useLanguage();
+  const pathname = usePathname();
+
+  const isHome = pathname === '/';
+  const isSearch = pathname === '/search';
+  const isWatchlist = pathname === '/watchlist';
+  const isAlerts = pathname === '/alerts';
+
+  return (
+    <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-sm" aria-label="Main navigation">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Left: Logo/Home */}
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/" 
+              className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+              prefetch={true}
+              aria-label="SepYap Home"
+            >
+              SepYap
+            </Link>
+            
+            {/* Navigation Links */}
+            <div className="hidden md:flex items-center gap-1 ml-4">
+              <Link
+                href="/search"
+                prefetch={true}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isSearch
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t('nav.search')}
+              </Link>
+              <Link
+                href="/watchlist"
+                prefetch={true}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isWatchlist
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t('nav.watchlist')}
+              </Link>
+              <Link
+                href="/alerts"
+                prefetch={true}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isAlerts
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t('nav.alerts')}
+              </Link>
+            </div>
+          </div>
+
+          {/* Right: Theme Toggle & Language Switcher */}
+          <div className="flex gap-2 items-center">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden pb-3 border-t border-gray-200 dark:border-gray-700 mt-2 pt-3">
+          <div className="flex items-center gap-1">
+            <Link
+              href="/search"
+              prefetch={true}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
+                isSearch
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {t('nav.search')}
+            </Link>
+            <Link
+              href="/watchlist"
+              prefetch={true}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
+                isWatchlist
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {t('nav.watchlist')}
+            </Link>
+            <Link
+              href="/alerts"
+              prefetch={true}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
+                isAlerts
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {t('nav.alerts')}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+});
+
+export default Navigation;
+

@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "SepYap",
+  "version": "1.2",
+  "description": "Automatically finds the cheapest grocery cart across multiple Turkish markets.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://*.migros.com.tr/*",
+    "https://*.carrefoursa.com/*",
+    "https://*.getir.com/*",
+    "https://*.a101.com.tr/*",
+    "https://*.sokmarket.com.tr/*",
+    "https://*.happycenter.com.tr/*",
+    "https://*.macrocenter.com.tr/*",
+    "https://*.bim.com.tr/*",
+    "https://*.trendyol.com/*",
+    "https://*.yemeksepeti.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.migros.com.tr/*",
+        "https://*.carrefoursa.com/*",
+        "https://*.getir.com/*",
+        "https://*.a101.com.tr/*",
+        "https://*.sokmarket.com.tr/*",
+        "https://*.happycenter.com.tr/*",
+        "https://*.macrocenter.com.tr/*",
+        "https://*.bim.com.tr/*",
+        "https://*.trendyol.com/*",
+        "https://*.yemeksepeti.com/*"
+      ],
+      "js": [
+        "parsers/base.js",
+        "parsers/getir.js",
+        "parsers/migros.js",
+        "parsers/carrefoursa.js",
+        "parsers/happycenter.js",
+        "parsers/macrocenter.js",
+        "parsers/a101.js",
+        "parsers/sok.js",
+        "parsers/bim.js",
+        "parsers/index.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "http://0.0.0.0/*",
+        "https://grocerymatcher.com/*",
+        "https://www.grocerymatcher.com/*"
+      ],
+      "js": ["inject-proof.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}
