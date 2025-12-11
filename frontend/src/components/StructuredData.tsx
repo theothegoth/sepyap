@@ -1,14 +1,11 @@
 'use client';
 
-import { useLanguage } from '../contexts/LanguageContext';
-
 interface StructuredDataProps {
   type?: 'Organization' | 'WebSite' | 'WebPage' | 'Product' | 'BreadcrumbList';
   data?: any;
 }
 
 export default function StructuredData({ type = 'WebSite', data }: StructuredDataProps) {
-  const { language } = useLanguage();
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 
   const getStructuredData = () => {
@@ -20,7 +17,7 @@ export default function StructuredData({ type = 'WebSite', data }: StructuredDat
           name: 'SepYap',
           url: baseUrl,
           logo: `${baseUrl}/logo.png`,
-          description: 'Compare grocery prices across all major Turkish markets',
+          description: 'Tüm Türk marketlerinde fiyatları karşılaştırın',
           sameAs: [
             // Add social media links when available
           ],
@@ -32,8 +29,8 @@ export default function StructuredData({ type = 'WebSite', data }: StructuredDat
           '@type': 'WebSite',
           name: 'SepYap',
           url: baseUrl,
-          description: 'Compare grocery prices across all major Turkish markets and find the cheapest shopping cart',
-          inLanguage: language === 'tr' ? 'tr-TR' : 'en-US',
+          description: 'Tüm Türk marketlerinde fiyatları karşılaştırın ve en ucuz alışveriş sepetini bulun',
+          inLanguage: 'tr-TR',
           potentialAction: {
             '@type': 'SearchAction',
             target: {
@@ -49,9 +46,9 @@ export default function StructuredData({ type = 'WebSite', data }: StructuredDat
           '@context': 'https://schema.org',
           '@type': 'WebPage',
           url: data?.url || baseUrl,
-          name: data?.name || 'GroceryMatcher',
-          description: data?.description || 'Compare grocery prices',
-          inLanguage: language === 'tr' ? 'tr-TR' : 'en-US',
+          name: data?.name || 'SepYap',
+          description: data?.description || 'Fiyatları karşılaştırın',
+          inLanguage: 'tr-TR',
         };
 
       case 'Product':

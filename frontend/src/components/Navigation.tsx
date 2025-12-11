@@ -2,13 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useLanguage } from '../contexts/LanguageContext';
 import ThemeToggle from './ThemeToggle';
-import LanguageSwitcher from './LanguageSwitcher';
 import { memo } from 'react';
 
 const Navigation = memo(function Navigation() {
-  const { t } = useLanguage();
   const pathname = usePathname();
 
   const isHome = pathname === '/';
@@ -34,6 +31,17 @@ const Navigation = memo(function Navigation() {
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-1 ml-4">
               <Link
+                href="/cart"
+                prefetch={true}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  pathname === '/cart'
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                Sepet
+              </Link>
+              <Link
                 href="/search"
                 prefetch={true}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -42,7 +50,7 @@ const Navigation = memo(function Navigation() {
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                {t('nav.search')}
+                Ürün Ara
               </Link>
               <Link
                 href="/watchlist"
@@ -53,7 +61,7 @@ const Navigation = memo(function Navigation() {
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                {t('nav.watchlist')}
+                İzleme Listesi
               </Link>
               <Link
                 href="/alerts"
@@ -64,21 +72,31 @@ const Navigation = memo(function Navigation() {
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                {t('nav.alerts')}
+                Uyarılar
               </Link>
             </div>
           </div>
 
-          {/* Right: Theme Toggle & Language Switcher */}
+          {/* Right: Theme Toggle */}
           <div className="flex gap-2 items-center">
             <ThemeToggle />
-            <LanguageSwitcher />
           </div>
         </div>
 
         {/* Mobile Navigation */}
         <div className="md:hidden pb-3 border-t border-gray-200 dark:border-gray-700 mt-2 pt-3">
           <div className="flex items-center gap-1">
+            <Link
+              href="/cart"
+              prefetch={true}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
+                pathname === '/cart'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              Sepet
+            </Link>
             <Link
               href="/search"
               prefetch={true}
@@ -88,7 +106,7 @@ const Navigation = memo(function Navigation() {
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              {t('nav.search')}
+              Ürün Ara
             </Link>
             <Link
               href="/watchlist"
@@ -99,7 +117,7 @@ const Navigation = memo(function Navigation() {
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              {t('nav.watchlist')}
+              İzleme Listesi
             </Link>
             <Link
               href="/alerts"
@@ -110,7 +128,7 @@ const Navigation = memo(function Navigation() {
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              {t('nav.alerts')}
+              Uyarılar
             </Link>
           </div>
         </div>

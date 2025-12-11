@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
 import { useBrandPreferences, BrandPreferenceSet } from '../hooks/useBrandPreferences';
 
 interface BrandPreferencesManagerProps {
@@ -15,7 +14,6 @@ export default function BrandPreferencesManager({
   excludedBrands,
   onLoad
 }: BrandPreferencesManagerProps) {
-  const { t } = useLanguage();
   const {
     preferenceSets,
     currentSet,
@@ -31,7 +29,7 @@ export default function BrandPreferencesManager({
 
   const handleSave = () => {
     if (!preferenceName.trim()) {
-      alert(t('home.preferenceName') + ' ' + t('common.required') || 'is required');
+      alert('Tercih Adı gerekli');
       return;
     }
     savePreferenceSet(preferenceName.trim(), selectedBrands, excludedBrands);
@@ -56,30 +54,30 @@ export default function BrandPreferencesManager({
         <button
           onClick={() => setShowSaveModal(true)}
           className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-          title={t('home.saveBrandPreferences')}
+          title="Marka Tercihlerini Kaydet"
         >
-          💾 {t('home.saveCurrent')}
+          💾 Mevcut Tercihleri Kaydet
         </button>
         <button
           onClick={() => setShowLoadModal(true)}
           className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-          title={t('home.loadBrandPreferences')}
+          title="Marka Tercihlerini Yükle"
         >
-          📂 {t('home.loadBrandPreferences')}
+          📂 Marka Tercihlerini Yükle
         </button>
         {(selectedBrands.length > 0 || excludedBrands.length > 0) && (
           <button
             onClick={handleClear}
             className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
           >
-            {t('home.clear')}
+            Temizle
           </button>
         )}
       </div>
 
       {currentSet && (
         <div className="mt-2 text-xs text-gray-600">
-          {t('home.activePreference')}: <span className="font-semibold">{currentSet.name}</span>
+          Aktif Tercih: <span className="font-semibold">{currentSet.name}</span>
         </div>
       )}
 
@@ -87,10 +85,10 @@ export default function BrandPreferencesManager({
       {showSaveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
           <div className="card max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{t('home.saveBrandPreferences')}</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Marka Tercihlerini Kaydet</h3>
             <input
               type="text"
-              placeholder={t('home.preferenceName')}
+              placeholder="Tercih Adı"
               value={preferenceName}
               onChange={(e) => setPreferenceName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
@@ -102,7 +100,7 @@ export default function BrandPreferencesManager({
                 onClick={handleSave}
                 className="flex-1 btn-primary"
               >
-                {t('common.save')}
+                Kaydet
               </button>
               <button
                 onClick={() => {
@@ -111,7 +109,7 @@ export default function BrandPreferencesManager({
                 }}
                 className="flex-1 btn-secondary"
               >
-                {t('common.cancel')}
+                İptal
               </button>
             </div>
           </div>
@@ -122,9 +120,9 @@ export default function BrandPreferencesManager({
       {showLoadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
           <div className="card max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{t('home.savedPreferences')}</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Kayıtlı Tercihler</h3>
             {preferenceSets.length === 0 ? (
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{t('home.noSavedPreferences')}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">Kayıtlı tercih yok</p>
             ) : (
               <div className="space-y-2 mb-4">
                 {preferenceSets.map((set) => (
@@ -142,12 +140,12 @@ export default function BrandPreferencesManager({
                         <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                           {set.includeBrands.length > 0 && (
                             <div>
-                              {t('home.includeBrands')}: {set.includeBrands.join(', ')}
+                              Dahil Et (sadece bu markalar): {set.includeBrands.join(', ')}
                             </div>
                           )}
                           {set.excludeBrands.length > 0 && (
                             <div>
-                              {t('home.excludeBrands')}: {set.excludeBrands.join(', ')}
+                              Hariç Tut (bu markaları gizle): {set.excludeBrands.join(', ')}
                             </div>
                           )}
                         </div>
@@ -157,17 +155,17 @@ export default function BrandPreferencesManager({
                           onClick={() => handleLoad(set)}
                           className="px-2 py-1 text-xs btn-primary"
                         >
-                          {t('home.load')}
+                          Yükle
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm('Delete this preference?')) {
+                            if (confirm('Bu tercihi silmek istediğinizden emin misiniz?')) {
                               deletePreferenceSet(set.id);
                             }
                           }}
                           className="px-2 py-1 text-xs btn-danger"
                         >
-                          {t('home.delete')}
+                          Sil
                         </button>
                       </div>
                     </div>
@@ -179,7 +177,7 @@ export default function BrandPreferencesManager({
               onClick={() => setShowLoadModal(false)}
               className="w-full btn-secondary"
             >
-              {t('common.close')}
+              Kapat
             </button>
           </div>
         </div>
@@ -187,4 +185,3 @@ export default function BrandPreferencesManager({
     </div>
   );
 }
-

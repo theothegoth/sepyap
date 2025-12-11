@@ -4,12 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import Link from 'next/link';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { useExtensionCheck } from '../../hooks/useExtensionCheck';
 import ExtensionRequiredModal from '../../components/ExtensionRequiredModal';
 
 export default function WatchlistPage() {
-  const { t } = useLanguage();
   const { checkExtension } = useExtensionCheck();
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const router = useRouter();
@@ -71,7 +69,7 @@ export default function WatchlistPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading watchlist...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Yükleniyor...</p>
           </div>
         </div>
       </main>
@@ -90,14 +88,14 @@ export default function WatchlistPage() {
         <header className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{t('watchlist.title')}</h1>
-              <p className="text-gray-600 dark:text-gray-400">{t('watchlist.subtitle')}</p>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">İzleme Listesi</h1>
+              <p className="text-gray-600 dark:text-gray-400">Fiyat düşüşlerini takip edin</p>
             </div>
             <Link
               href="/search"
               className="btn-primary"
             >
-              + {t('common.add')} {t('watchlist.product')}
+              + Ekle Ürün
             </Link>
           </div>
         </header>
@@ -105,12 +103,12 @@ export default function WatchlistPage() {
         {/* Watchlist Items */}
         {watchlist.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">{t('watchlist.empty')}</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">İzleme listeniz boş.</p>
             <Link
               href="/search"
               className="btn-primary inline-block"
             >
-              {t('nav.search')}
+              Ürün Ara
             </Link>
           </div>
         ) : (
@@ -127,26 +125,26 @@ export default function WatchlistPage() {
                     </h3>
                     {item.target_price && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('watchlist.alertWhenPriceDropsBelow')}{' '}
+                        Fiyat şu fiyatın altına düştüğünde uyar{' '}
                         <span className="font-semibold">{item.target_price.toFixed(2)} TL</span>
                       </p>
                     )}
                     {item.target_percent && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('watchlist.alertWhenPriceDropsBy')}{' '}
+                        Fiyat şu yüzde düştüğünde uyar{' '}
                         <span className="font-semibold">{item.target_percent}%</span>
                       </p>
                     )}
                     {!item.target_price && !item.target_percent && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('watchlist.defaultAlert')}
+                        Herhangi bir %5+ fiyat düşüşünde uyar
                       </p>
                     )}
                   </div>
                   <button
                     onClick={() => handleRemove(item.product_id)}
                     className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 ml-4 transition-colors"
-                    title={t('watchlist.remove')}
+                    title="Kaldır"
                   >
                     ✕
                   </button>
@@ -156,13 +154,13 @@ export default function WatchlistPage() {
                     onClick={() => router.push(`/products/${item.product_id}`)}
                     className="flex-1 btn-primary text-sm"
                   >
-                    {t('product.comparePrices')}
+                    Fiyatları Karşılaştır
                   </button>
                   <Link
                     href={`/alerts?productId=${item.product_id}`}
                     className="btn-secondary text-sm"
                   >
-                    {t('nav.alerts')}
+                    Uyarılar
                   </Link>
                 </div>
               </div>
@@ -173,4 +171,3 @@ export default function WatchlistPage() {
     </main>
   );
 }
-

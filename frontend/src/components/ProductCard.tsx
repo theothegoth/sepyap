@@ -2,7 +2,6 @@
 
 import React, { memo } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '../contexts/LanguageContext';
 
 interface ProductCardProps {
   product: {
@@ -26,8 +25,6 @@ const ProductCard = memo(function ProductCard({
   onRemoveFromWatchlist,
   onProductClick,
 }: ProductCardProps) {
-  const { t } = useLanguage();
-
   return (
     <div className="card hover:shadow-lg transition-all border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600">
       {product.image_url && (
@@ -48,30 +45,30 @@ const ProductCard = memo(function ProductCard({
           {product.category}
         </span>
       )}
-      <div className="mt-3 flex gap-2">
+      <div className="mt-4 flex gap-2">
         <button
           onClick={() => onProductClick(product.id)}
           className="flex-1 btn-primary text-sm"
         >
-          {t('search.comparePrices')}
+          Fiyatları karşılaştır →
         </button>
         {isWatched ? (
           <button
             onClick={onRemoveFromWatchlist}
+            className="px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 text-sm transition-colors"
+            title="Kaldır"
             disabled={isLoading}
-            className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-sm disabled:opacity-50 transition-colors"
-            title={t('watchlist.remove')}
           >
-            {isLoading ? '...' : '✓'}
+            {isLoading ? '...' : '✕'}
           </button>
         ) : (
           <button
             onClick={onAddToWatchlist}
+            className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm transition-colors"
+            title="İzleme Listesine Ekle"
             disabled={isLoading}
-            className="px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm disabled:opacity-50 transition-colors"
-            title={t('product.addToWatchlist')}
           >
-            {isLoading ? '...' : '+'}
+            {isLoading ? '...' : '⭐'}
           </button>
         )}
       </div>
@@ -80,4 +77,3 @@ const ProductCard = memo(function ProductCard({
 });
 
 export default ProductCard;
-

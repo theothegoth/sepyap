@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import Link from 'next/link';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { useExtensionCheck } from '../../hooks/useExtensionCheck';
 import ExtensionRequiredModal from '../../components/ExtensionRequiredModal';
 import BrandPreferencesManager from '../../components/BrandPreferencesManager';
@@ -13,7 +12,6 @@ import ProductCard from '../../components/ProductCard';
 import StructuredData from '../../components/StructuredData';
 
 export default function SearchPage() {
-  const { t } = useLanguage();
   const { checkExtension } = useExtensionCheck();
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const [query, setQuery] = useState('');
@@ -158,8 +156,8 @@ export default function SearchPage() {
         type="WebPage"
         data={{
           url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/search`,
-          name: t('search.title'),
-          description: t('search.subtitle'),
+          name: 'Ürün Ara',
+          description: 'Tüm marketlerde fiyatları karşılaştırın',
         }}
       />
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -171,25 +169,25 @@ export default function SearchPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{t('search.title')}</h1>
-          <p className="text-gray-600 dark:text-gray-400">{t('search.subtitle')}</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">Ürün Ara</h1>
+          <p className="text-gray-600 dark:text-gray-400">Tüm marketlerde fiyatları karşılaştırın</p>
         </header>
 
         {/* Search Input */}
         <div className="mb-6">
           <label htmlFor="search-input" className="sr-only">
-            {t('search.placeholder')}
+            Ürün ara (örn. Yerli Muz, Süt, Domates)...
           </label>
           <div className="relative">
             <input
               id="search-input"
               ref={searchInputRef}
               type="search"
-              placeholder={t('search.placeholder')}
+              placeholder="Ürün ara (örn. Yerli Muz, Süt, Domates)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="input w-full text-lg"
-              aria-label={t('search.placeholder')}
+              aria-label="Ürün ara (örn. Yerli Muz, Süt, Domates)..."
               autoComplete="off"
             />
             {loading && (
@@ -202,7 +200,7 @@ export default function SearchPage() {
 
         {/* Brand Filters */}
         <div className="mb-6 card">
-          <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-4">{t('home.filterByBrand')}</h3>
+          <h3 className="font-semibold text-gray-700 dark:text-gray-300 mb-4">Markaya Göre Filtrele</h3>
           
           {/* Brand Preferences Manager */}
           <BrandPreferencesManager
@@ -217,12 +215,12 @@ export default function SearchPage() {
             {/* Include Brands */}
             <div className="mb-4">
               <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">
-                {t('home.includeBrands')}
+                Dahil Et (sadece bu markalar):
               </label>
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
-                  placeholder={t('home.brandPlaceholder')}
+                  placeholder="Marka adı"
                   value={includeBrandInput}
                   onChange={(e) => setIncludeBrandInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -250,7 +248,7 @@ export default function SearchPage() {
                   }}
                   className="btn-primary"
                 >
-                  {t('common.add')}
+                  Ekle
                 </button>
               </div>
               {selectedBrands.length > 0 && (
@@ -276,12 +274,12 @@ export default function SearchPage() {
             {/* Exclude Brands */}
             <div>
               <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 block">
-                {t('home.excludeBrands')}
+                Hariç Tut (bu markaları gizle):
               </label>
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
-                  placeholder={t('home.brandPlaceholder')}
+                  placeholder="Marka adı"
                   value={excludeBrandInput}
                   onChange={(e) => setExcludeBrandInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -309,7 +307,7 @@ export default function SearchPage() {
                   }}
                   className="btn-danger"
                 >
-                  {t('common.add')}
+                  Ekle
                 </button>
               </div>
               {excludedBrands.length > 0 && (
@@ -343,7 +341,7 @@ export default function SearchPage() {
                 }}
                 className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline transition-colors"
               >
-                {t('common.clearAll')}
+                Tümünü Temizle
               </button>
             )}
         </div>
@@ -354,7 +352,7 @@ export default function SearchPage() {
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400 mx-auto"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-400">{t('search.searching')}</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-400">Aranıyor...</p>
               </div>
             ) : products.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -376,8 +374,8 @@ export default function SearchPage() {
               </div>
             ) : (
               <div className="text-center py-12 card">
-                <p className="text-gray-600 dark:text-gray-400">{t('search.noResults').replace('{query}', query)}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">{t('search.tryDifferent')}</p>
+                <p className="text-gray-600 dark:text-gray-400">"{query}" için ürün bulunamadı</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Farklı bir arama terimi deneyin</p>
               </div>
             )}
           </div>
@@ -386,7 +384,7 @@ export default function SearchPage() {
         {/* Empty State */}
         {query.length < 2 && (
           <div className="text-center py-12 card">
-            <p className="text-gray-600 dark:text-gray-400">{t('search.typeToSearch')}</p>
+            <p className="text-gray-600 dark:text-gray-400">Aramak için en az 2 karakter yazın</p>
           </div>
         )}
       </div>

@@ -5,11 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { api, PriceComparison } from '../../../lib/api';
 import Link from 'next/link';
 import PriceHistoryChart from '../../../components/PriceHistoryChart';
-import { useLanguage } from '../../../contexts/LanguageContext';
 import StructuredData from '../../../components/StructuredData';
 
 export default function ProductDetailPage() {
-  const { t } = useLanguage();
   const params = useParams();
   const router = useRouter();
   const productId = parseInt(params.id as string);
@@ -98,7 +96,7 @@ export default function ProductDetailPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Yükleniyor...</p>
           </div>
         </div>
       </main>
@@ -113,10 +111,10 @@ export default function ProductDetailPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Search
+            Aramaya Dön
           </Link>
           <div className="card p-8 text-center">
-            <p className="text-gray-600 dark:text-gray-400">Product not found</p>
+            <p className="text-gray-600 dark:text-gray-400">Ürün bulunamadı</p>
           </div>
         </div>
       </main>
@@ -150,7 +148,7 @@ export default function ProductDetailPage() {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{comparison.productTitle}</h1>
               {cheapestMarket && (
                 <p className="text-lg text-gray-600 dark:text-gray-400">
-                  {t('product.cheapestAt')} <span className="font-semibold text-green-600 dark:text-green-400">{cheapestMarket.marketName}</span> {t('product.for')}{' '}
+                  En ucuz <span className="font-semibold text-green-600 dark:text-green-400">{cheapestMarket.marketName}</span> için{' '}
                   <span className="font-bold text-green-600 dark:text-green-400">{cheapestMarket.price.toFixed(2)} TL</span>
                 </p>
               )}
@@ -170,7 +168,7 @@ export default function ProductDetailPage() {
                   disabled={watchlistLoading}
                   className="btn-primary disabled:opacity-50"
                 >
-                  {watchlistLoading ? '...' : `+ ${t('product.addToWatchlist')}`}
+                  {watchlistLoading ? '...' : '+ İzleme Listesine Ekle'}
                 </button>
               )}
             </div>
@@ -178,20 +176,20 @@ export default function ProductDetailPage() {
         </header>
 
         {/* Price Comparison Table */}
-        <section className="card mb-6 overflow-hidden" aria-label={t('product.comparePrices')}>
+        <section className="card mb-6 overflow-hidden" aria-label="Fiyatları Karşılaştır">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{t('product.comparePrices')}</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">{t('product.comparePrices')}</p>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Fiyatları Karşılaştır</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Fiyatları Karşılaştır</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('product.market')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('watchlist.product')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('product.property')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('product.price')}</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('watchlist.actions')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Market</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ürün</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Özellik</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fiyat</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -207,7 +205,7 @@ export default function ProductDetailPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-semibold text-gray-900 dark:text-gray-100">{market.marketName}</span>
                       {market.marketName === cheapestMarket?.marketName && (
-                        <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded">Cheapest</span>
+                        <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded">En Ucuz</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -241,7 +239,7 @@ export default function ProductDetailPage() {
                           rel="noopener noreferrer"
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
                         >
-                          {t('product.view')} →
+                          Görüntüle →
                         </a>
                       ) : (
                         <span className="text-gray-400 dark:text-gray-500">—</span>
@@ -256,23 +254,23 @@ export default function ProductDetailPage() {
 
         {/* Price History Chart */}
         {priceHistory && priceHistory.markets && priceHistory.markets.length > 0 && (
-          <section className="card mb-6" aria-label={t('product.priceHistory')}>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('product.priceHistory')}</h2>
+          <section className="card mb-6" aria-label="Fiyat Geçmişi">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Fiyat Geçmişi</h2>
             <PriceHistoryChart data={priceHistory} />
           </section>
         )}
 
         {/* Add to Basket */}
         <section className="card" aria-label="Add to Basket">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Add to Basket</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Sepete Ekle</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Add this product to your shopping basket to optimize across multiple items.
+            Bu ürünü alışveriş sepetinize ekleyerek birden fazla ürünü optimize edin.
           </p>
           <Link
-            href={`/?addProduct=${productId}`}
+            href={`/cart?addProduct=${productId}`}
             className="inline-block px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 font-medium transition-colors"
           >
-            Add to Basket →
+            Sepete Ekle →
           </Link>
         </section>
       </div>

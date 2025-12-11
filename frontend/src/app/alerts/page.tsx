@@ -4,12 +4,10 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '../../lib/api';
 import Link from 'next/link';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { useExtensionCheck } from '../../hooks/useExtensionCheck';
 import ExtensionRequiredModal from '../../components/ExtensionRequiredModal';
 
 function AlertsContent() {
-  const { t } = useLanguage();
   const { checkExtension } = useExtensionCheck();
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const router = useRouter();
@@ -105,7 +103,7 @@ function AlertsContent() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Yükleniyor...</p>
           </div>
         </div>
       </main>
@@ -124,14 +122,14 @@ function AlertsContent() {
         <header className="mb-8">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{t('alerts.title')}</h1>
-              <p className="text-gray-600 dark:text-gray-400">{t('alerts.subtitle')}</p>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">Fiyat Düşüş Uyarıları</h1>
+              <p className="text-gray-600 dark:text-gray-400">İzlediğiniz ürünlerdeki fiyat düşüşlerini görün</p>
             </div>
             <Link
               href="/watchlist"
               className="btn-primary"
             >
-              {t('nav.watchlist')}
+              İzleme Listesi
             </Link>
           </div>
 
@@ -140,15 +138,15 @@ function AlertsContent() {
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="card text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t('alerts.total')}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Toplam</div>
               </div>
               <div className="card text-center">
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.unread}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t('alerts.unreadCount')}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Okunmamış</div>
               </div>
               <div className="card text-center">
                 <div className="text-2xl font-bold text-gray-500 dark:text-gray-400">{stats.dismissed}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t('alerts.dismissed')}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Kapatılan</div>
               </div>
             </div>
           )}
@@ -162,7 +160,7 @@ function AlertsContent() {
                 onChange={(e) => setUnreadOnly(e.target.checked)}
                 className="w-4 h-4 text-blue-600 dark:text-blue-400 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">{t('alerts.unread')}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Okunmamış</span>
             </label>
           </div>
         </header>
@@ -171,13 +169,13 @@ function AlertsContent() {
         {alerts.length === 0 ? (
           <div className="card p-12 text-center">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {t('alerts.empty')}
+              Uyarı yok.
             </p>
             <Link
               href="/search"
               className="btn-primary inline-block"
             >
-              {t('watchlist.addToWatchlist')}
+              İzleme Listesine Ekle
             </Link>
           </div>
         ) : (
@@ -197,31 +195,31 @@ function AlertsContent() {
                       </h3>
                       {!alert.is_read && (
                         <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded">
-                          New
+                          Yeni
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      Price dropped at <span className="font-semibold">{alert.marketProduct?.market?.name || 'Unknown Market'}</span>
+                      Fiyat <span className="font-semibold">{alert.marketProduct?.market?.name || 'Bilinmeyen Market'}</span> marketinde düştü
                     </p>
                     <div className="flex items-center gap-4 text-sm flex-wrap">
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">Old Price: </span>
+                        <span className="text-gray-500 dark:text-gray-400">Eski Fiyat: </span>
                         <span className="line-through text-gray-700 dark:text-gray-300">{alert.old_price.toFixed(2)} TL</span>
                       </div>
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">New Price: </span>
+                        <span className="text-gray-500 dark:text-gray-400">Yeni Fiyat: </span>
                         <span className="font-bold text-green-600 dark:text-green-400 text-lg">{alert.new_price.toFixed(2)} TL</span>
                       </div>
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400">Saved: </span>
+                        <span className="text-gray-500 dark:text-gray-400">Tasarruf: </span>
                         <span className="font-semibold text-green-600 dark:text-green-400">
                           {alert.price_change.toFixed(2)} TL ({alert.price_change_percent.toFixed(1)}%)
                         </span>
                       </div>
                     </div>
                     <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(alert.created_at).toLocaleString()}
+                      {new Date(alert.created_at).toLocaleString('tr-TR')}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 ml-4">
@@ -232,7 +230,7 @@ function AlertsContent() {
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm text-center transition-colors"
                       >
-                        Buy Now →
+                        Şimdi Satın Al →
                       </a>
                     )}
                     {!alert.is_read && (
@@ -240,14 +238,14 @@ function AlertsContent() {
                         onClick={() => handleMarkAsRead(alert.id)}
                         className="btn-secondary text-sm"
                       >
-                        {t('alerts.markRead')}
+                        Okundu İşaretle
                       </button>
                     )}
                     <button
                       onClick={() => handleDismiss(alert.id)}
                       className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 text-sm transition-colors"
                     >
-                      {t('alerts.dismiss')}
+                      Kapat
                     </button>
                   </div>
                 </div>
@@ -267,7 +265,7 @@ export default function AlertsPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400 mx-auto"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Yükleniyor...</p>
           </div>
         </div>
       </main>
@@ -276,4 +274,3 @@ export default function AlertsPage() {
     </Suspense>
   );
 }
-

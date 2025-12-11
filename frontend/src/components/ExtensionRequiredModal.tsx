@@ -1,15 +1,11 @@
 'use client';
 
-import { useLanguage } from '../contexts/LanguageContext';
-
 interface ExtensionRequiredModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export default function ExtensionRequiredModal({ isOpen, onClose }: ExtensionRequiredModalProps) {
-  const { t } = useLanguage();
-
   if (!isOpen) return null;
 
   return (
@@ -18,19 +14,19 @@ export default function ExtensionRequiredModal({ isOpen, onClose }: ExtensionReq
         <div className="mb-6">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {t('lock.title')}
+            Uzantı Gerekli
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {t('lock.message')}
+            Lütfen SepYap Chrome uzantısını yükleyin.
           </p>
         </div>
         
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 text-left">
-          <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">{t('lock.steps')}</h3>
+          <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">Kurulum Adımları:</h3>
           <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800 dark:text-blue-300">
-            <li>{t('lock.step1')}</li>
-            <li>{t('lock.step2')}</li>
-            <li>{t('lock.step3')}</li>
+            <li>Chrome Web Mağazası'ndan SepYap uzantısını yükleyin</li>
+            <li>Sayfayı yenileyin (F5 veya Ctrl+R)</li>
+            <li>Uzantı yüklendikten sonra site otomatik olarak açılacak</li>
           </ol>
         </div>
 
@@ -38,7 +34,7 @@ export default function ExtensionRequiredModal({ isOpen, onClose }: ExtensionReq
           onClick={onClose}
           className="w-full btn-primary mb-2"
         >
-          {t('common.close')}
+          Kapat
         </button>
 
         <button
@@ -51,4 +47,3 @@ export default function ExtensionRequiredModal({ isOpen, onClose }: ExtensionReq
     </div>
   );
 }
-
