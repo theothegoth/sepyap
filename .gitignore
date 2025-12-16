@@ -51,3 +51,9 @@ coverage/
 *.pem
 *.key
 
+# Empty directories (keep structure but ignore empty folders)
+infra/
+mobile/
+worker/
+backend/src/scripts/
+
