@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { MarketProduct } from '../entities/MarketProduct.entity';
 import { Market } from '../entities/Market.entity';
 import { Product } from '../entities/Product.entity';
@@ -12,20 +12,34 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface BasketBreakdown {
+  marketName: string;
+  items: {
+    name: string;
+    price: number;
+    quantity: number;
+    total: number;
+    product: MarketProduct;
+  }[];
+  subtotal: number;
+  deliveryFee: number;
+  total?: number;
+}
+
+export interface AlternativeCart {
+  id: string;
+  totalPrice: number;
+  breakdown: BasketBreakdown[];
+  marketCount: number;
+}
+
 export interface OptimizedResult {
   totalPrice: number;
-  breakdown: {
-    marketName: string;
-    items: {
-      name: string;
-      price: number;
-      quantity: number;
-      total: number;
-      product: MarketProduct;
-    }[];
-    subtotal: number;
-    deliveryFee: number;
-  }[];
+  breakdown: BasketBreakdown[];
+  /**
+   * Ek alternatif sepetler (ör: tek marketten sepet, farklı market kombinasyonları)
+   */
+  alternatives?: AlternativeCart[];
 }
 
 @Injectable()
@@ -49,13 +63,16 @@ export class OptimizationService {
    * @param cartItems Items to optimize
    * @param includeBrands Brands to include (only products with these brands in title)
    * @param excludeBrands Brands to exclude (hide products with these brands in title)
+   * @param allowedMarkets Optional allowed market names (filter)
    */
   async findCheapestCart(
     cartItems: CartItem[],
     includeBrands: string[] = [],
-    excludeBrands: string[] = []
+    excludeBrands: string[] = [],
+    allowedMarkets: string[] = [],
   ): Promise<OptimizedResult> {
     const candidatesMap = new Map<string | number, MarketProduct[]>();
+    const allMarkets = new Set<string>();
 
     for (const item of cartItems) {
       let candidates: MarketProduct[] = [];
@@ -69,18 +86,20 @@ export class OptimizationService {
           .where('mp.product_master_id = :productId', { productId: item.productId })
           .andWhere('mp.in_stock = true')
           .getMany();
-        
-        this.logger.debug(`[Optimization] Found ${candidates.length} MarketProducts for Product ID ${item.productId}`);
+
+        this.logger.debug(
+          `[Optimization] Found ${candidates.length} MarketProducts for Product ID ${item.productId}`,
+        );
       }
-      
+
       // Strategy 2: Use query string to find Product, then get all MarketProducts
       if (candidates.length === 0 && item.query) {
         // Search for products matching the query
         const products = await this.matchingService.searchProducts(item.query, 5);
-        
+
         if (products.length > 0) {
           // Get all MarketProducts for matched products
-          const productIds = products.map(p => p.id);
+          const productIds = products.map((p) => p.id);
           candidates = await this.marketProductRepo
             .createQueryBuilder('mp')
             .leftJoinAndSelect('mp.market', 'market')
@@ -88,16 +107,20 @@ export class OptimizationService {
             .where('mp.product_master_id IN (:...productIds)', { productIds })
             .andWhere('mp.in_stock = true')
             .getMany();
-          
-          this.logger.debug(`[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}"`);
+
+          this.logger.debug(
+            `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}"`,
+          );
         }
-        
+
         // Fallback: Direct title search (backward compatibility) - case-insensitive
         if (candidates.length === 0) {
           candidates = await this.marketProductRepo
             .createQueryBuilder('mp')
             .leftJoinAndSelect('mp.market', 'market')
-            .where('LOWER(TRIM(mp.title)) LIKE LOWER(:query)', { query: `%${item.query.trim()}%` })
+            .where('LOWER(TRIM(mp.title)) LIKE LOWER(:query)', {
+              query: `%${item.query.trim()}%`,
+            })
             .andWhere('mp.in_stock = true')
             .getMany();
         }
@@ -108,50 +131,71 @@ export class OptimizationService {
         candidates = this.applyBrandFilters(candidates, includeBrands, excludeBrands);
       }
 
+      // Apply market filter (only keep allowed markets if provided)
+      if (allowedMarkets.length > 0) {
+        const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
+        candidates = candidates.filter(
+          (c) =>
+            c.market &&
+            normalizedAllowed.includes(c.market.name.trim().toLowerCase()),
+        );
+      }
+
+      // Track markets that have at least one candidate (for alternatives)
+      for (const c of candidates) {
+        if (c.market?.name) {
+          allMarkets.add(c.market.name);
+        }
+      }
+
       // Sort by efficiency (price per unit) first, then by total price
-      // This ensures we get the most efficient option (e.g., 1L for 20 TL vs 200ML for 10 TL)
       candidates.sort((a, b) => {
-        const priceA = a.price_card ? parseFloat(a.price_card.toString()) : parseFloat(a.price.toString());
-        const priceB = b.price_card ? parseFloat(b.price_card.toString()) : parseFloat(b.price.toString());
-        
-        // Calculate price per unit (efficiency)
+        const priceA = a.price_card
+          ? parseFloat(a.price_card.toString())
+          : parseFloat(a.price.toString());
+        const priceB = b.price_card
+          ? parseFloat(b.price_card.toString())
+          : parseFloat(b.price.toString());
+
         const efficiencyA = this.calculateEfficiency(priceA, a.property);
         const efficiencyB = this.calculateEfficiency(priceB, b.property);
-        
-        // If both have valid efficiency, sort by efficiency (lower is better)
+
         if (efficiencyA !== null && efficiencyB !== null) {
           return efficiencyA - efficiencyB;
         }
-        
-        // If only one has efficiency, prefer the one with efficiency
+
         if (efficiencyA !== null && efficiencyB === null) return -1;
         if (efficiencyA === null && efficiencyB !== null) return 1;
-        
-        // If neither has efficiency, sort by total price
+
         return priceA - priceB;
       });
-      
+
       const key = item.productId || item.query || 'unknown';
       candidatesMap.set(key, candidates.slice(0, 10)); // Take top 10 most efficient for better optimization
     }
 
-    const chosenItems: { itemKey: string | number; product: MarketProduct; quantity: number }[] = [];
+    const chosenItems: { itemKey: string | number; product: MarketProduct; quantity: number }[] =
+      [];
 
     for (const item of cartItems) {
       const key = item.productId || item.query || 'unknown';
       const candidates = candidatesMap.get(key) || [];
       if (candidates.length === 0) {
-        this.logger.warn(`No products found for: ${item.productId ? `Product ID ${item.productId}` : `query "${item.query}"`}`);
+        this.logger.warn(
+          `No products found for: ${
+            item.productId ? `Product ID ${item.productId}` : `query "${item.query}"`
+          }`,
+        );
         continue;
       }
       chosenItems.push({
         itemKey: key,
         product: candidates[0], // Take most efficient (best price per unit)
-        quantity: item.quantity
+        quantity: item.quantity,
       });
     }
 
-    const marketBaskets = new Map<string, any>();
+    const marketBaskets = new Map<string, BasketBreakdown>();
 
     for (const selection of chosenItems) {
       const marketName = selection.product.market.name;
@@ -160,70 +204,137 @@ export class OptimizationService {
           marketName,
           items: [],
           subtotal: 0,
-          deliveryFee: 0 
+          deliveryFee: 0,
+          total: 0,
         });
       }
-      
-      const basket = marketBaskets.get(marketName);
-      // Use card price if available (cheaper), otherwise use regular price
+
+      const basket = marketBaskets.get(marketName)!;
       const effectivePrice = selection.product.price_card || selection.product.price;
       const productPrice = Number(effectivePrice);
       const lineTotal = productPrice * selection.quantity;
-      
+
       basket.items.push({
         name: selection.product.title,
         price: productPrice,
         quantity: selection.quantity,
         total: lineTotal,
-        product: selection.product
+        product: selection.product,
       });
       basket.subtotal += lineTotal;
     }
 
-    const breakdown = [];
+    const breakdown: BasketBreakdown[] = [];
     let grandTotal = 0;
 
     for (const basket of marketBaskets.values()) {
-      // Calculate delivery for informational purposes only (not included in optimization)
       const market = basket.items[0]?.product?.market;
       const deliveryFee = this.calculateDeliveryFee(basket.subtotal, market);
       basket.deliveryFee = deliveryFee;
-      
-      // Total is products only (delivery excluded from calculation)
+
       basket.total = basket.subtotal;
-      
       grandTotal += basket.total;
       breakdown.push(basket);
     }
 
-    // Sort breakdown by product prices only (cheapest first, excluding delivery)
-    breakdown.sort((a, b) => a.total - b.total);
+    breakdown.sort((a, b) => (a.total || 0) - (b.total || 0));
 
-    return {
-      totalPrice: grandTotal, // Products total only (delivery excluded)
-      breakdown
+    const result: OptimizedResult = {
+      totalPrice: grandTotal,
+      breakdown,
     };
+
+    // Alternatif sepetler: tek marketten alışveriş yapılabilecek sepetler
+    const alternativeCarts: AlternativeCart[] = [];
+
+    for (const marketName of allMarkets) {
+      if (allowedMarkets.length > 0) {
+        const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
+        if (!normalizedAllowed.includes(marketName.trim().toLowerCase())) {
+          continue;
+        }
+      }
+
+      const selectionsForMarket: {
+        itemKey: string | number;
+        product: MarketProduct;
+        quantity: number;
+      }[] = [];
+      let canServeAllItems = true;
+
+      for (const item of cartItems) {
+        const key = item.productId || item.query || 'unknown';
+        const candidates = candidatesMap.get(key) || [];
+        const candidateForMarket = candidates.find(
+          (c) => c.market?.name === marketName,
+        );
+        if (!candidateForMarket) {
+          canServeAllItems = false;
+          break;
+        }
+        selectionsForMarket.push({
+          itemKey: key,
+          product: candidateForMarket,
+          quantity: item.quantity,
+        });
+      }
+
+      if (!canServeAllItems || selectionsForMarket.length === 0) {
+        continue;
+      }
+
+      const altBasket: BasketBreakdown = {
+        marketName,
+        items: [],
+        subtotal: 0,
+        deliveryFee: 0,
+        total: 0,
+      };
+
+      for (const selection of selectionsForMarket) {
+        const effectivePrice = selection.product.price_card || selection.product.price;
+        const productPrice = Number(effectivePrice);
+        const lineTotal = productPrice * selection.quantity;
+
+        altBasket.items.push({
+          name: selection.product.title,
+          price: productPrice,
+          quantity: selection.quantity,
+          total: lineTotal,
+          product: selection.product,
+        });
+        altBasket.subtotal += lineTotal;
+      }
+
+      const marketEntity = selectionsForMarket[0].product.market;
+      altBasket.deliveryFee = this.calculateDeliveryFee(altBasket.subtotal, marketEntity);
+      altBasket.total = altBasket.subtotal;
+
+      alternativeCarts.push({
+        id: `single-market-${marketName}`,
+        totalPrice: altBasket.total!,
+        breakdown: [altBasket],
+        marketCount: 1,
+      });
+    }
+
+    if (alternativeCarts.length > 0) {
+      alternativeCarts.sort((a, b) => a.totalPrice - b.totalPrice);
+      result.alternatives = alternativeCarts.slice(0, 3);
+    }
+
+    return result;
   }
 
   /**
    * Calculate price per unit (efficiency) from property string
-   * Examples:
-   * - "200 ML" with price 10 TL -> 10 / 0.2 = 50 TL per liter
-   * - "1 L" with price 20 TL -> 20 / 1 = 20 TL per liter
-   * - "500 G" with price 15 TL -> 15 / 0.5 = 30 TL per kg
-   * - "1 Adet" -> null (can't calculate efficiency for count-based items)
-   * 
-   * Returns: Price per base unit (TL per liter/kg) or null if can't calculate
    */
   private calculateEfficiency(price: number, property: string | null): number | null {
     if (!property) return null;
-    
+
     const normalized = property.toLowerCase().trim();
-    
-    // Extract numeric value and unit
-    // Patterns: "200 ML", "1 L", "500 G", "1 KG", "2-2.5 KG", "3 x 210 G"
-    
-    // Handle multi-packs: "3 x 210 G" -> 3 * 210 = 630 G
+
+    // multi-pack: "3 x 210 G"
     const multiPackMatch = normalized.match(/(\d+)\s*x\s*(\d+)\s*(g|kg|ml|l|gr|lt)/);
     if (multiPackMatch) {
       const count = parseFloat(multiPackMatch[1]);
@@ -232,9 +343,11 @@ export class OptimizationService {
       const totalAmount = count * amount;
       return this.calculatePricePerBaseUnit(price, totalAmount, unit);
     }
-    
-    // Handle ranges: "2-2.5 KG" -> use average (2.25 KG)
-    const rangeMatch = normalized.match(/(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt)/);
+
+    // range: "2-2.5 KG"
+    const rangeMatch = normalized.match(
+      /(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt)/,
+    );
     if (rangeMatch) {
       const min = parseFloat(rangeMatch[1].replace(',', '.'));
       const max = parseFloat(rangeMatch[2].replace(',', '.'));
@@ -242,57 +355,52 @@ export class OptimizationService {
       const avg = (min + max) / 2;
       return this.calculatePricePerBaseUnit(price, avg, unit);
     }
-    
-    // Handle simple amounts: "200 ML", "1 L", "500 G"
-    const simpleMatch = normalized.match(/(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt|adet)/);
+
+    // simple: "200 ML", "1 L", "500 G"
+    const simpleMatch = normalized.match(
+      /(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt|adet)/,
+    );
     if (simpleMatch) {
       const amount = parseFloat(simpleMatch[1].replace(',', '.'));
       const unit = simpleMatch[2];
-      
-      // Skip count-based items (adet = piece)
+
       if (unit === 'adet') return null;
-      
+
       return this.calculatePricePerBaseUnit(price, amount, unit);
     }
-    
-    return null; // Can't parse property
+
+    return null;
   }
-  
-  /**
-   * Calculate price per base unit (TL per liter or TL per kg)
-   * Converts all units to base units (L for liquids, KG for weights)
-   */
-  private calculatePricePerBaseUnit(price: number, amount: number, unit: string): number | null {
+
+  private calculatePricePerBaseUnit(
+    price: number,
+    amount: number,
+    unit: string,
+  ): number | null {
     const normalizedUnit = unit.toLowerCase();
     let baseAmount: number;
-    
-    // Convert to base units
+
     if (normalizedUnit === 'l' || normalizedUnit === 'lt') {
-      baseAmount = amount; // Already in liters
+      baseAmount = amount;
     } else if (normalizedUnit === 'ml') {
-      baseAmount = amount / 1000; // Convert ml to liters
+      baseAmount = amount / 1000;
     } else if (normalizedUnit === 'kg') {
-      baseAmount = amount; // Already in kg
+      baseAmount = amount;
     } else if (normalizedUnit === 'g' || normalizedUnit === 'gr') {
-      baseAmount = amount / 1000; // Convert g to kg
+      baseAmount = amount / 1000;
     } else {
-      return null; // Unknown unit
+      return null;
     }
-    
+
     if (baseAmount <= 0) return null;
-    
-    // Return price per base unit (TL per liter or TL per kg)
+
     return price / baseAmount;
   }
 
-  /**
-   * Apply brand filters to market products
-   * Checks if brand name appears in product title
-   */
   private applyBrandFilters(
     products: MarketProduct[],
     includeBrands: string[],
-    excludeBrands: string[]
+    excludeBrands: string[],
   ): MarketProduct[] {
     if (includeBrands.length === 0 && excludeBrands.length === 0) {
       return products;
@@ -315,72 +423,70 @@ export class OptimizationService {
       return normalized;
     };
 
-    return products.filter(product => {
+    return products.filter((product) => {
       const normalizedTitle = normalizeString(product.title);
-      
-      // Exclude brands
+
       if (excludeBrands.length > 0) {
-        const isExcluded = excludeBrands.some(excludeBrand => {
+        const isExcluded = excludeBrands.some((excludeBrand) => {
           const normalizedExclude = normalizeString(excludeBrand);
           return normalizedTitle.includes(normalizedExclude);
         });
         if (isExcluded) return false;
       }
-      
-      // Include brands
+
       if (includeBrands.length > 0) {
-        const isIncluded = includeBrands.some(includeBrand => {
+        const isIncluded = includeBrands.some((includeBrand) => {
           const normalizedInclude = normalizeString(includeBrand);
           return normalizedTitle.includes(normalizedInclude);
         });
         if (!isIncluded) return false;
       }
-      
+
       return true;
     });
   }
 
-  /**
-   * Calculate delivery fee dynamically based on order value and market rules
-   * Returns calculated delivery cost (not a fixed amount)
-   * Formula: Based on order value and market-specific thresholds
-   */
   private calculateDeliveryFee(subtotal: number, market?: Market): number {
     if (!market) {
-      // Default calculation: Free if subtotal > 200 TL, otherwise 20 TL
       return subtotal > 200 ? 0 : 20;
     }
 
-    // Check if market has minimum order amount requirement
-    const minOrder = market.min_order_amount ? parseFloat(market.min_order_amount.toString()) : 0;
+    const minOrder = market.min_order_amount
+      ? parseFloat(market.min_order_amount.toString())
+      : 0;
     if (minOrder > 0 && subtotal < minOrder) {
-      // Order doesn't meet minimum - return high fee (indicates can't order)
       return 999;
     }
 
-    // Calculate delivery based on free_delivery_threshold
-    const freeThreshold = market.free_delivery_threshold ? parseFloat(market.free_delivery_threshold.toString()) : null;
+    const freeThreshold = market.free_delivery_threshold
+      ? parseFloat(market.free_delivery_threshold.toString())
+      : null;
 
     if (freeThreshold !== null) {
-      // If order meets free delivery threshold, delivery is free
       if (subtotal >= freeThreshold) {
-        return 0; // Free delivery
+        return 0;
       }
-      
-      // Calculate delivery based on order value
-      // Default: 20 TL if below threshold
-      // Can be customized per market if needed
       return 20;
     }
 
-    // Fallback: Calculate based on order value
-    // Free delivery if order > 200 TL, otherwise 20 TL
     return subtotal > 200 ? 0 : 20;
   }
 
   /**
-   * Compare prices for a Product across all markets
+   * Tüm marketlerin basit listesini döner (id + name)
+   * Market filtreleme için kullanılır.
    */
+  async getAllMarkets(): Promise<{ id: number; name: string }[]> {
+    const markets = await this.marketRepo.find({
+      order: { name: 'ASC' },
+    });
+
+    return markets.map((m) => ({
+      id: m.id,
+      name: m.name,
+    }));
+  }
+
   async compareProductPrices(productId: number): Promise<{
     productId: number;
     productTitle: string;
@@ -392,7 +498,7 @@ export class OptimizationService {
       property: string | null;
       url: string | null;
       imageUrl: string | null;
-      effectivePrice: number; // Card price if available, otherwise regular price
+      effectivePrice: number;
     }[];
     cheapest: {
       marketName: string;
@@ -400,21 +506,22 @@ export class OptimizationService {
     } | null;
   }> {
     const product = await this.productRepo.findOne({
-      where: { id: productId }
+      where: { id: productId },
     });
 
     if (!product) {
       throw new Error(`Product ${productId} not found`);
     }
 
-    // Get all MarketProducts for this Product
     const marketProducts = await this.marketProductRepo.find({
       where: { product_master_id: productId, in_stock: true },
-      relations: ['market']
+      relations: ['market'],
     });
 
-    const markets = marketProducts.map(mp => {
-      const effectivePrice = mp.price_card ? parseFloat(mp.price_card.toString()) : parseFloat(mp.price.toString());
+    const markets = marketProducts.map((mp) => {
+      const effectivePrice = mp.price_card
+        ? parseFloat(mp.price_card.toString())
+        : parseFloat(mp.price.toString());
       return {
         marketName: mp.market.name,
         title: mp.title,
@@ -423,23 +530,25 @@ export class OptimizationService {
         property: mp.property,
         url: mp.url,
         imageUrl: mp.image_url,
-        effectivePrice
+        effectivePrice,
       };
     });
 
-    // Sort by effective price
     markets.sort((a, b) => a.effectivePrice - b.effectivePrice);
 
-    const cheapest = markets.length > 0 ? {
-      marketName: markets[0].marketName,
-      price: markets[0].effectivePrice
-    } : null;
+    const cheapest =
+      markets.length > 0
+        ? {
+            marketName: markets[0].marketName,
+            price: markets[0].effectivePrice,
+          }
+        : null;
 
     return {
       productId: product.id,
       productTitle: product.canonical_title,
       markets,
-      cheapest
+      cheapest,
     };
   }
 }

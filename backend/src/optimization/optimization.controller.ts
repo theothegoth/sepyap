@@ -9,19 +9,24 @@ export class OptimizationController {
 
   @Post()
   async optimizeCart(
-    @Body() payload: {
+    @Body()
+    payload: {
       items: { query?: string; productId?: number; quantity: number }[];
       includeBrands?: string[];
       excludeBrands?: string[];
-    }
+      allowedMarkets?: string[];
+    },
   ) {
     this.logger.log(`Optimizing cart with ${payload.items.length} items.`);
     const includeBrands = payload.includeBrands || [];
     const excludeBrands = payload.excludeBrands || [];
+    const allowedMarkets = payload.allowedMarkets || [];
+
     const result = await this.optimizationService.findCheapestCart(
       payload.items,
       includeBrands,
-      excludeBrands
+      excludeBrands,
+      allowedMarkets,
     );
     return result;
   }
@@ -37,5 +42,18 @@ export class ProductComparisonController {
   async compareProduct(@Param('productId') productId: number) {
     this.logger.log(`Comparing prices for Product ID ${productId}`);
     return this.optimizationService.compareProductPrices(productId);
+  }
+}
+
+@Controller('api/markets')
+export class MarketsController {
+  private readonly logger = new Logger(MarketsController.name);
+
+  constructor(private readonly optimizationService: OptimizationService) {}
+
+  @Get()
+  async getAll() {
+    this.logger.log('Fetching all markets');
+    return this.optimizationService.getAllMarkets();
   }
 }

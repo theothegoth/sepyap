@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OptimizationController, ProductComparisonController } from './optimization.controller';
+import {
+  OptimizationController,
+  ProductComparisonController,
+  MarketsController,
+} from './optimization.controller';
 import { OptimizationService } from './optimization.service';
 import { MarketProduct } from '../entities/MarketProduct.entity';
 import { Market } from '../entities/Market.entity';
@@ -12,7 +16,7 @@ import { MatchingModule } from '../matching/matching.module';
     TypeOrmModule.forFeature([MarketProduct, Market, Product]),
     MatchingModule,
   ],
-  controllers: [OptimizationController, ProductComparisonController],
+  controllers: [OptimizationController, ProductComparisonController, MarketsController],
   providers: [OptimizationService],
   exports: [OptimizationService],
 })

@@ -13,12 +13,34 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
+  // Initial state: Check if HTML already has 'dark' class (set by inline script)
+  // This prevents flash of light mode on page load
+  const getInitialTheme = (): Theme => {
+    if (typeof window === 'undefined') return 'light';
+    try {
+      // Check if inline script already set dark class
+      if (document.documentElement.classList.contains('dark')) {
+        return 'dark';
+      }
+      // Fallback: check localStorage
+      const savedTheme = localStorage.getItem('theme') as Theme;
+      if (savedTheme) return savedTheme;
+      // Fallback: check system preference
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+    } catch (e) {
+      // If anything fails, default to light
+    }
+    return 'light';
+  };
+
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Load theme from localStorage or prefer system preference
+    // Ensure theme is applied (in case inline script didn't run or state is out of sync)
     const savedTheme = localStorage.getItem('theme') as Theme;
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
