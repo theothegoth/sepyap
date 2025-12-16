@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useExtensionCheck } from '../hooks/useExtensionCheck';
 import StructuredData from '../components/StructuredData';
@@ -13,7 +13,13 @@ const privacyPoints = [
 
 export default function LandingPage() {
   const { checkExtension } = useExtensionCheck();
-  const hasExtension = checkExtension();
+  const [hasExtension, setHasExtension] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setHasExtension(checkExtension());
+  }, [checkExtension]);
 
   return (
     <>
@@ -38,7 +44,7 @@ export default function LandingPage() {
                 Tüm Türk marketlerinde fiyatları karşılaştırın ve paradan tasarruf edin
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                {!hasExtension ? (
+                {!mounted || !hasExtension ? (
                   <a
                     href="#install"
                     className="px-8 py-4 bg-white text-green-600 dark:bg-gray-800 dark:text-green-400 rounded-lg font-bold text-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-xl hover:shadow-2xl transform hover:scale-105"
@@ -301,7 +307,7 @@ export default function LandingPage() {
               Uzantıyı yükleyin ve alışverişinizden tasarruf etmeye başlayın
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {!hasExtension ? (
+              {!mounted || !hasExtension ? (
                 <a
                   href="#install"
                   className="px-8 py-4 bg-white text-green-600 dark:bg-gray-800 dark:text-green-400 rounded-lg font-bold text-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-xl"
