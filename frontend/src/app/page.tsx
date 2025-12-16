@@ -45,12 +45,9 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 {!mounted || !hasExtension ? (
-                  <a
-                    href="#install"
-                    className="px-8 py-4 bg-white text-green-600 dark:bg-gray-800 dark:text-green-400 rounded-lg font-bold text-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-xl hover:shadow-2xl transform hover:scale-105"
-                  >
-                    Uzantıyı Yükle
-                  </a>
+                  <div className="px-8 py-4 bg-white text-green-600 dark:bg-gray-800 dark:text-green-400 rounded-lg font-bold text-lg shadow-xl">
+                    Chrome Uzantısı Yakında
+                  </div>
                 ) : (
                   <Link
                     href="/cart"
@@ -82,7 +79,7 @@ export default function LandingPage() {
                   1
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                  Uzantıyı Yükle
+                  Chrome Uzantısı Yakında
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
                   Chrome uzantısını yükleyin ve market sitelerinde otomatik fiyat toplama özelliğini etkinleştirin
@@ -312,7 +309,7 @@ export default function LandingPage() {
                   href="#install"
                   className="px-8 py-4 bg-white text-green-600 dark:bg-gray-800 dark:text-green-400 rounded-lg font-bold text-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-xl"
                 >
-                  Uzantıyı Yükle
+                  Chrome Uzantısı Yakında
                 </a>
               ) : (
                 <Link
