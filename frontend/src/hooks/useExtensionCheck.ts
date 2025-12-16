@@ -10,6 +10,11 @@ export function useExtensionCheck() {
   const extensionDetectedRef = useRef<boolean>(false);
 
   const checkExtension = (): boolean => {
+    // During SSR, window doesn't exist, so return false
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
     // If we've already detected it via event, trust that
     if (extensionDetectedRef.current) {
       return true;
@@ -17,11 +22,13 @@ export function useExtensionCheck() {
 
     // Check if we stored the detection in sessionStorage (survives React re-renders)
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
-      if (stored === 'true') {
-        extensionDetectedRef.current = true;
-        setIsExtensionInstalled(true);
-        return true;
+      if (typeof sessionStorage !== 'undefined') {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored === 'true') {
+          extensionDetectedRef.current = true;
+          setIsExtensionInstalled(true);
+          return true;
+        }
       }
     } catch (e) {
       // sessionStorage might not be available
@@ -40,7 +47,9 @@ export function useExtensionCheck() {
       extensionDetectedRef.current = true;
       // Store in sessionStorage for persistence
       try {
-        sessionStorage.setItem(STORAGE_KEY, 'true');
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(STORAGE_KEY, 'true');
+        }
       } catch (e) {
         // Ignore storage errors
       }
@@ -53,12 +62,19 @@ export function useExtensionCheck() {
   };
 
   useEffect(() => {
+    // Skip if window is not available (SSR)
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     // Check sessionStorage on mount
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY);
-      if (stored === 'true') {
-        extensionDetectedRef.current = true;
-        setIsExtensionInstalled(true);
+      if (typeof sessionStorage !== 'undefined') {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored === 'true') {
+          extensionDetectedRef.current = true;
+          setIsExtensionInstalled(true);
+        }
       }
     } catch (e) {
       // Ignore
@@ -74,7 +90,9 @@ export function useExtensionCheck() {
         setIsExtensionInstalled(true);
         // Store in sessionStorage
         try {
-          sessionStorage.setItem(STORAGE_KEY, 'true');
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(STORAGE_KEY, 'true');
+          }
         } catch (e) {
           // Ignore storage errors
         }
@@ -108,7 +126,9 @@ export function useExtensionCheck() {
       if (slowInterval) {
         clearInterval(slowInterval);
       }
-      window.removeEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
+      }
     };
   }, []);
 
