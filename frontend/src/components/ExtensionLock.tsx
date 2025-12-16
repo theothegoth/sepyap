@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
 
 const PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
 
 export default function ExtensionLock({ children }: { children: React.ReactNode }) {
-  const { t } = useLanguage();
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [checking, setChecking] = useState(true);
 
@@ -56,7 +54,7 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('common.loading')}</p>
+          <p className="text-gray-600">Yükleniyor...</p>
         </div>
       </div>
     );
@@ -69,19 +67,19 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
           <div className="mb-6">
             <div className="text-6xl mb-4">🔒</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {t('lock.title')}
+              SepYap Eklentisi Gerekli
             </h1>
             <p className="text-gray-600 mb-6">
-              {t('lock.message')}
+              Bu sayfayı kullanmak için SepYap Chrome eklentisini yüklemeniz gerekiyor.
             </p>
           </div>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-            <h3 className="font-semibold text-blue-900 mb-2">{t('lock.steps')}</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Kurulum Adımları</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
-              <li>{t('lock.step1')}</li>
-              <li>{t('lock.step2')}</li>
-              <li>{t('lock.step3')}</li>
+              <li>Chrome Web Store'dan SepYap eklentisini yükleyin</li>
+              <li>Eklentiyi etkinleştirin ve sayfayı yenileyin</li>
+              <li>Eklenti yüklendikten sonra bu sayfa otomatik olarak açılacak</li>
             </ol>
           </div>
 
@@ -104,18 +102,18 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
             onClick={() => window.location.reload()}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors mb-2"
           >
-            {t('lock.reload')}
+            Sayfayı Yenile
           </button>
 
           <button
             onClick={() => window.open('chrome://extensions/', '_blank')}
             className="w-full bg-gray-200 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm"
           >
-            Open Extensions Page
+            Eklentiler Sayfasını Aç
           </button>
 
           <p className="mt-4 text-xs text-gray-500">
-            {t('lock.note')}
+            Eklenti yüklendikten sonra sayfayı yenilemeniz gerekebilir.
           </p>
         </div>
       </div>
