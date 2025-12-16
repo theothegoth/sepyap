@@ -15,7 +15,7 @@ import { AlertsModule } from './alerts/alerts.module';
       port: 5432,
       username: process.env.DB_USER || 'admin',
       password: process.env.DB_PASSWORD || 'password',
-      database: process.env.DB_NAME || 'grocery_matcher',
+      database: process.env.DB_NAME || 'sepyap',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       // Connection pooling for better performance

@@ -37,13 +37,18 @@ cd sepyap
 2. Create a `.env` file in the root directory:
 ```env
 DB_USER=admin
-DB_PASSWORD=your-secure-password
-DB_NAME=grocery_matcher
+DB_PASSWORD=your-secure-password-min-16-chars
+DB_NAME=sepyap
 ADMIN_SECRET=your-secret-key-here
 ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001
 NEXT_PUBLIC_SITE_URL=http://localhost:3001
 NEXT_PUBLIC_API_URL=http://127.0.0.1:3005/api
 ```
+
+**DB_PASSWORD Güvenlik Notu:**
+- En az 16 karakter uzunluğunda olmalı
+- Büyük harf, küçük harf, sayı ve özel karakter içermeli
+- Örnek: `MyStr0ng!P@ssw0rd#2024`
 
 3. Start the services:
 ```bash
@@ -99,7 +104,7 @@ Create a `.env` file in the root directory with the following variables:
 # Database Configuration
 DB_USER=your_db_user
 DB_PASSWORD=your_secure_password
-DB_NAME=grocery_matcher
+DB_NAME=sepyap
 
 # Admin Secret Key (for admin mode access)
 ADMIN_SECRET=your-secret-key-here

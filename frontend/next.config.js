@@ -12,6 +12,9 @@ const nextConfig = {
   // Optimize production builds
   swcMinify: true,
   
+  // Standalone output for Docker production
+  output: 'standalone',
+  
   // Headers for CSP, security, and extension support
   async headers() {
     return [

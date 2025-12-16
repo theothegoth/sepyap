@@ -173,7 +173,7 @@ export default function ProductDetailPage() {
               )}
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Price Comparison Table */}
         <section className="card mb-6 overflow-hidden" aria-label="Fiyatları Karşılaştır">
