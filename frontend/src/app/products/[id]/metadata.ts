@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       title: `Product #${productId} - Price Comparison`,
       description: `Compare prices for product #${productId} across all major Turkish markets.`,
       url: `/products/${productId}`,
-      type: 'product',
+      type: 'website',
     },
     alternates: {
       canonical: `/products/${productId}`,
