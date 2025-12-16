@@ -123,7 +123,11 @@ export default function SearchPage() {
     setWatchlistLoading((prev) => ({ ...prev, [productId]: true }));
     try {
       await api.addToWatchlist(userId, productId);
-      setWatchedProductIds((prev) => new Set([...prev, productId]));
+      setWatchedProductIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(productId);
+        return newSet;
+      });
     } catch (error) {
       console.error('Error adding to watchlist:', error);
       alert('Failed to add to watchlist');
