@@ -58,7 +58,7 @@ export default function SearchPage() {
     try {
       const response = await api.getWatchlist(userId);
       const watchlist = response.data || [];
-      const watchedIds = new Set(watchlist.map((item: any) => item.product_id));
+      const watchedIds = new Set<number>(watchlist.map((item: any) => Number(item.product_id)));
       setWatchedProductIds(watchedIds);
     } catch (error) {
       console.error('Error loading watchlist:', error);
