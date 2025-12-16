@@ -10,8 +10,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     const isSepYapSite = 
       (url.hostname === 'localhost' && url.port === '3001') ||
       (url.hostname === '127.0.0.1' && url.port === '3001') ||
-      url.hostname === 'grocerymatcher.com' ||
-      url.hostname === 'www.grocerymatcher.com';
+      url.hostname === 'sepyap.com' ||
+      url.hostname === 'www.sepyap.com';
     
     if (isSepYapSite) {
       // Inject proof script programmatically
@@ -31,9 +31,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
 
     const market = request.products[0]?.market || 'Unknown';
-    const BATCH_SIZE = 500; // Send 500 products at a time to avoid payload size limits
+    // Backend supports up to 2000 products per batch
+    const BATCH_SIZE = 2000;
     
-    // Split products into batches
+    // Split products into batches if needed (for very large pages)
     const batches = [];
     for (let i = 0; i < request.products.length; i += BATCH_SIZE) {
       batches.push(request.products.slice(i, i + BATCH_SIZE));
@@ -70,13 +71,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       };
 
       try {
+        // Create AbortController for timeout (5 minutes for large batches)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
+
         const response = await fetch('http://127.0.0.1:3005/api/ingest', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json; charset=utf-8'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
         const data = await response.json();
         
@@ -91,7 +103,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Send next batch after a small delay to avoid overwhelming the server
         setTimeout(() => sendBatch(batchIndex + 1), 100);
       } catch (error) {
-        console.error(`Error sending batch ${batchIndex + 1}:`, error);
+        if (error.name === 'AbortError') {
+          console.error(`Timeout sending batch ${batchIndex + 1} (${batch.length} products)`);
+        } else {
+          console.error(`Error sending batch ${batchIndex + 1}:`, error);
+        }
         totalErrors += batch.length;
         // Continue with next batch even if this one failed
         setTimeout(() => sendBatch(batchIndex + 1), 100);

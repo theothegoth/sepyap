@@ -1,33 +1,39 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
-  
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sepyap.com';
+  const currentDate = new Date().toISOString();
+
   return [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: currentDate,
       changeFrequency: 'daily',
-      priority: 1,
+      priority: 1.0,
     },
     {
-      url: `${baseUrl}/search`,
-      lastModified: new Date(),
-      changeFrequency: 'hourly',
+      url: `${baseUrl}/cart`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/watchlist`,
-      lastModified: new Date(),
+      url: `${baseUrl}/search`,
+      lastModified: currentDate,
       changeFrequency: 'daily',
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/watchlist`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/alerts`,
-      lastModified: new Date(),
-      changeFrequency: 'hourly',
-      priority: 0.8,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.7,
     },
   ];
 }
-

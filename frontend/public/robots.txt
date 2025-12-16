@@ -1,11 +1,12 @@
-# https://www.robotstxt.org/robotstxt.html
+# https://www.robotstxt.org/robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
 
-# Disallow admin/internal pages if any
+# Disallow admin/internal pages
 Disallow: /api/
 Disallow: /_next/
+Disallow: /cart?admin=*
 
-# Sitemap
-Sitemap: https://grocerymatcher.com/sitemap.xml
+# Sitemap (Next.js will generate this automatically)
+Sitemap: https://sepyap.com/sitemap.xml
 

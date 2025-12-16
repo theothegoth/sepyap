@@ -45,6 +45,9 @@ export interface OptimizedResult {
 @Injectable()
 export class OptimizationService {
   private readonly logger = new Logger(OptimizationService.name);
+  // Cache for getAllMarkets (markets don't change often)
+  private marketsCache: { data: { id: number; name: string }[]; timestamp: number } | null = null;
+  private readonly MARKETS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   constructor(
     @InjectRepository(MarketProduct)
@@ -475,16 +478,34 @@ export class OptimizationService {
   /**
    * Tüm marketlerin basit listesini döner (id + name)
    * Market filtreleme için kullanılır.
+   * Cached for 30 minutes for better performance.
    */
   async getAllMarkets(): Promise<{ id: number; name: string }[]> {
+    // Check cache
+    if (
+      this.marketsCache &&
+      Date.now() - this.marketsCache.timestamp < this.MARKETS_CACHE_TTL
+    ) {
+      return this.marketsCache.data;
+    }
+
+    // Fetch from database
     const markets = await this.marketRepo.find({
       order: { name: 'ASC' },
     });
 
-    return markets.map((m) => ({
+    const result = markets.map((m) => ({
       id: m.id,
       name: m.name,
     }));
+
+    // Update cache
+    this.marketsCache = {
+      data: result,
+      timestamp: Date.now(),
+    };
+
+    return result;
   }
 
   async compareProductPrices(productId: number): Promise<{

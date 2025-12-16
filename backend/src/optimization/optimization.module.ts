@@ -4,6 +4,7 @@ import {
   OptimizationController,
   ProductComparisonController,
   MarketsController,
+  AdminController,
 } from './optimization.controller';
 import { OptimizationService } from './optimization.service';
 import { MarketProduct } from '../entities/MarketProduct.entity';
@@ -16,7 +17,7 @@ import { MatchingModule } from '../matching/matching.module';
     TypeOrmModule.forFeature([MarketProduct, Market, Product]),
     MatchingModule,
   ],
-  controllers: [OptimizationController, ProductComparisonController, MarketsController],
+  controllers: [OptimizationController, ProductComparisonController, MarketsController, AdminController],
   providers: [OptimizationService],
   exports: [OptimizationService],
 })

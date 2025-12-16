@@ -12,7 +12,7 @@ const nextConfig = {
   // Optimize production builds
   swcMinify: true,
   
-  // Headers for CSP and extension support
+  // Headers for CSP, security, and extension support
   async headers() {
     return [
       {
@@ -33,6 +33,26 @@ const nextConfig = {
               "form-action 'self'",
               "frame-ancestors 'none'",
             ].join('; '),
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
         ],
       },

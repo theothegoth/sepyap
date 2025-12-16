@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | SepYap"
   },
   description: "Compare grocery prices across all major Turkish markets (Migros, CarrefourSA, Getir, A101) and find the cheapest shopping cart. Save money on your groceries with real-time price comparison.",
-  keywords: ["grocery", "price comparison", "shopping", "migros", "carrefour", "getir", "a101", "cheap groceries", "grocery prices", "market comparison", "turkey"],
+  keywords: ["grocery", "price comparison", "shopping", "migros", "carrefour", "getir", "a101", "bim", "şok", "cheap groceries", "grocery prices", "market comparison", "turkey", "türkiye", "market fiyat karşılaştırma", "en ucuz market", "alışveriş fiyat karşılaştırma"],
   authors: [{ name: "SepYap" }],
   creator: "SepYap",
   publisher: "SepYap",
@@ -21,34 +21,28 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'),
   alternates: {
     canonical: '/',
-    languages: {
-      'tr': '/tr',
-      'en': '/en',
-    },
   },
   openGraph: {
     type: 'website',
     locale: 'tr_TR',
-    alternateLocale: ['en_US'],
     url: '/',
     siteName: 'SepYap',
-    title: 'SepYap - Find the Cheapest Grocery Prices',
-    description: 'Compare grocery prices across all major Turkish markets and find the cheapest shopping cart.',
+    title: 'SepYap - Tüm Marketlerde En Ucuz Fiyatları Bulun',
+    description: 'Migros, CarrefourSA, Getir, A101, Bim, Şok ve daha fazlasında fiyatları karşılaştırın. En ucuz alışveriş sepetini bulun ve paradan tasarruf edin.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'SepYap - Price Comparison',
+        alt: 'SepYap - Market Fiyat Karşılaştırma',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SepYap - Find the Cheapest Grocery Prices',
-    description: 'Compare grocery prices across all major Turkish markets and find the cheapest shopping cart.',
+    title: 'SepYap - Tüm Marketlerde En Ucuz Fiyatları Bulun',
+    description: 'Migros, CarrefourSA, Getir, A101 ve daha fazlasında fiyatları karşılaştırın. En ucuz alışveriş sepetini bulun.',
     images: ['/og-image.png'],
-    creator: '@sepyap',
   },
   robots: {
     index: true,

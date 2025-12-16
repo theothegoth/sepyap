@@ -32,31 +32,46 @@ function CartContent() {
   const [allMarkets, setAllMarkets] = useState<string[]>([]);
 
   useEffect(() => {
-    const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'change-this-secret-key';
+    const checkAdminAccess = async () => {
+      const adminParam =
+        searchParams?.get('admin') ||
+        (typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('admin')
+          : null);
+      const decodedParam = adminParam ? decodeURIComponent(adminParam) : null;
 
-    const adminParam =
-      searchParams?.get('admin') ||
-      (typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('admin')
-        : null);
-    const decodedParam = adminParam ? decodeURIComponent(adminParam) : null;
-
-    if (decodedParam && decodedParam === ADMIN_SECRET) {
-      setIsAdmin(true);
-      const adminToken = btoa(ADMIN_SECRET + '_' + Date.now()).substring(0, 20);
-      localStorage.setItem('groceryMatcher_admin_token', adminToken);
-      localStorage.setItem('groceryMatcher_admin_enabled', 'true');
-    } else {
-      const storedToken = localStorage.getItem('groceryMatcher_admin_token');
-      const storedEnabled = localStorage.getItem('groceryMatcher_admin_enabled');
-      if (storedToken && storedEnabled === 'true') {
-        setIsAdmin(true);
+      if (decodedParam) {
+        // Check with backend
+        try {
+          const res = await api.checkAdmin(decodedParam);
+          if (res.data.valid) {
+            setIsAdmin(true);
+            localStorage.setItem('groceryMatcher_admin_token', res.data.token);
+            localStorage.setItem('groceryMatcher_admin_enabled', 'true');
+          } else {
+            setIsAdmin(false);
+            localStorage.removeItem('groceryMatcher_admin_token');
+            localStorage.removeItem('groceryMatcher_admin_enabled');
+          }
+        } catch (e) {
+          setIsAdmin(false);
+        }
       } else {
-        setIsAdmin(false);
-        localStorage.removeItem('groceryMatcher_admin_token');
-        localStorage.removeItem('groceryMatcher_admin_enabled');
+        // Check stored token
+        const storedToken = localStorage.getItem('groceryMatcher_admin_token');
+        const storedEnabled = localStorage.getItem('groceryMatcher_admin_enabled');
+        if (storedToken && storedEnabled === 'true') {
+          // Token exists, assume valid (backend validation happens on first check)
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+          localStorage.removeItem('groceryMatcher_admin_token');
+          localStorage.removeItem('groceryMatcher_admin_enabled');
+        }
       }
-    }
+    };
+
+    checkAdminAccess();
   }, [searchParams]);
 
   useEffect(() => {

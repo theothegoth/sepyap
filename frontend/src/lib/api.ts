@@ -13,7 +13,12 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 const axiosInstance = axios.create({
-  timeout: 10000,
+  timeout: 10000, // 10 seconds default
+});
+
+// Special axios instance for ingest operations (handles large batches up to 2000 products)
+const ingestAxiosInstance = axios.create({
+  timeout: 5 * 60 * 1000, // 5 minutes for large product batches
 });
 
 export interface CartItem {
@@ -77,11 +82,17 @@ export const api = {
   },
 
   getMarkets: async () => {
-    return axiosInstance.get(`${API_URL}/markets`);
+    const cacheKey = 'markets:all';
+    return apiCache.get(
+      cacheKey,
+      () => axiosInstance.get(`${API_URL}/markets`),
+      30 * 60 * 1000, // 30 minutes cache (markets don't change often)
+    );
   },
 
   ingest: async (products: any[]) => {
-    return axiosInstance.post(`${API_URL}/ingest`, { items: products });
+    // Use special axios instance with longer timeout for large batches
+    return ingestAxiosInstance.post(`${API_URL}/ingest`, { items: products });
   },
 
   searchProducts: async (
@@ -211,5 +222,10 @@ export const api = {
       () => axiosInstance.get(`${API_URL}/alerts/${userId}/stats`),
       1 * 60 * 1000,
     );
+  },
+
+  // Admin check (server-side validation)
+  checkAdmin: async (secret: string) => {
+    return axiosInstance.post(`${API_URL}/admin/check`, { secret });
   },
 };
