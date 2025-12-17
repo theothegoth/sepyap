@@ -40,7 +40,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       batches.push(request.products.slice(i, i + BATCH_SIZE));
     }
 
+    // Determine backend URL based on environment
+    // If we're on sepyap.com, use production API; otherwise use localhost
+    let backendUrl = 'https://api.sepyap.com/api/ingest'; // Default to production
     
+    // Check if we're on localhost (for development)
+    if (sender && sender.tab && sender.tab.url) {
+      try {
+        const url = new URL(sender.tab.url);
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+          backendUrl = 'http://127.0.0.1:3005/api/ingest';
+        }
+      } catch (e) {
+        // If URL parsing fails, use production default
+      }
+    }
 
     // Send all batches sequentially
     let completedBatches = 0;
@@ -75,7 +89,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
 
-        const response = await fetch('http://127.0.0.1:3005/api/ingest', {
+        const response = await fetch(backendUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json; charset=utf-8'
