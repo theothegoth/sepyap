@@ -49,15 +49,33 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, Postman, or extension)
-      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('chrome-extension://')) {
+      // Chrome extensions send requests with chrome-extension:// origin
+      if (!origin) {
+        // No origin header (e.g., Postman, curl, or some extension requests)
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
+      
+      // Check if it's a Chrome extension
+      if (origin.startsWith('chrome-extension://')) {
+        callback(null, true);
+        return;
+      }
+      
+      // Check if it's in allowed origins
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      
+      // Reject all other origins
+      callback(new Error('Not allowed by CORS'));
     },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Length', 'X-Request-Id'],
     credentials: true,
+    maxAge: 86400, // 24 hours
   });
 
   // Listen on 0.0.0.0 to allow Docker port mapping to work
