@@ -18,7 +18,7 @@ function getMarketName() {
   if (hostname.includes('getir')) return 'Getir';
   if (hostname.includes('a101')) return 'A101';
   if (hostname.includes('sokmarket')) return 'Sok';
-  if (hostname.includes('happycenter')) return 'HappyCenter';
+  if (hostname.includes('happycenter')) return 'Happy Center';
   if (hostname.includes('macrocenter')) return 'Macrocenter';
   if (hostname.includes('trendyol')) return 'Trendyol';
   if (hostname.includes('yemeksepeti')) return 'Yemeksepeti';
