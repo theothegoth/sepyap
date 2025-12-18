@@ -116,18 +116,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Log full response for debugging
         console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} response:`, JSON.stringify(data, null, 2));
         
+        // Log response structure for debugging
+        console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} response structure:`, {
+          hasResult: !!data.result,
+          hasSuccess: !!data.success,
+          resultKeys: data.result ? Object.keys(data.result) : [],
+          dataKeys: Object.keys(data)
+        });
+        
         if (data.result) {
           // Backend returns createdCount, updatedCount, not created, updated
-          totalCreated += data.result.createdCount || data.result.created || 0;
-          totalUpdated += data.result.updatedCount || data.result.updated || 0;
-          totalErrors += data.result.errors || 0;
+          const created = data.result.createdCount || data.result.created || 0;
+          const updated = data.result.updatedCount || data.result.updated || 0;
+          const errors = data.result.errors || 0;
+          
+          console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} parsed: created=${created}, updated=${updated}, errors=${errors}`);
+          
+          totalCreated += created;
+          totalUpdated += updated;
+          totalErrors += errors;
           
           // Log error details if any
-          if (data.result.errors > 0 && data.result.errorDetails) {
+          if (errors > 0 && data.result.errorDetails) {
             console.error(`[GroceryMatcher Background] Batch ${batchIndex + 1} errors:`, data.result.errorDetails);
           }
         } else if (data.error || data.message) {
           console.error(`[GroceryMatcher Background] Batch ${batchIndex + 1} error response:`, data);
+          totalErrors += batch.length;
+        } else {
+          // No result and no error - this shouldn't happen
+          console.warn(`[GroceryMatcher Background] Batch ${batchIndex + 1} unexpected response format:`, data);
           totalErrors += batch.length;
         }
 
