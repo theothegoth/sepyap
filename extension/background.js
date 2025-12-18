@@ -117,8 +117,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} response:`, JSON.stringify(data, null, 2));
         
         if (data.result) {
-          totalCreated += data.result.created || 0;
-          totalUpdated += data.result.updated || 0;
+          // Backend returns createdCount, updatedCount, not created, updated
+          totalCreated += data.result.createdCount || data.result.created || 0;
+          totalUpdated += data.result.updatedCount || data.result.updated || 0;
           totalErrors += data.result.errors || 0;
           
           // Log error details if any
