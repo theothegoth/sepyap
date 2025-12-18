@@ -62,8 +62,12 @@ export class IngestService {
         for (const item of batch) {
           try {
             const result = await this.saveProduct(item, transactionalEntityManager);
-            if (result.created) createdCount++;
-            else updatedCount++;
+            if (result.created) {
+              createdCount++;
+              this.logger.debug(`[Ingest] Product created: ${item.title?.substring(0, 50)}`);
+            } else {
+              updatedCount++;
+            }
             savedCount++;
             
             // Queue price history to record after transaction commits
@@ -103,6 +107,7 @@ export class IngestService {
     }
 
     this.logger.log(`Summary: ${createdCount} created, ${updatedCount} updated, ${errors} errors`);
+    this.logger.debug(`[Ingest] Final counts - created: ${createdCount}, updated: ${updatedCount}, errors: ${errors}, saved: ${savedCount}`);
     return { savedCount, createdCount, updatedCount, errors };
   }
 
