@@ -172,12 +172,22 @@ export class IngestService {
     // This prevents products with same title but different URLs from being merged
     if (rawItem.product_url) {
       // Check if it's a product detail URL (not a category page)
-      const isProductUrl = rawItem.product_url.includes('/urun/') || 
-                          rawItem.product_url.includes('/product/') ||
-                          rawItem.product_url.includes('/p/') ||
-                          rawItem.product_url.includes('/aktuel-urunler/') ||
-                          rawItem.product_url.includes('-p-') ||
-                          rawItem.product_url.includes('/kapida/');
+      const urlLower = rawItem.product_url.toLowerCase();
+      const isProductUrl = urlLower.includes('/urun/') || 
+                          urlLower.includes('/product/') ||
+                          urlLower.includes('/p/') ||
+                          urlLower.includes('/aktuel-urunler/') ||
+                          urlLower.includes('-p-') ||
+                          urlLower.includes('/kapida/') ||
+                          // Happy Center: URLs like /Product_Name_Slug (domain + slug, no category path)
+                          (urlLower.includes('happycenter.com.tr/') && 
+                           !urlLower.includes('/kategori/') && 
+                           !urlLower.includes('/category/') &&
+                           !urlLower.includes('/arama') &&
+                           !urlLower.includes('?page=') &&
+                           !urlLower.includes('?q=') &&
+                           !urlLower.includes('search=') &&
+                           rawItem.product_url.split('/').length >= 4); // domain + at least one path segment
       
       if (isProductUrl) {
         // Clean URL (remove query params and fragments for better matching)
@@ -199,13 +209,21 @@ export class IngestService {
     // This prevents "Yerli Muz 29.99 TL" and "Yerli Muz 139.99 TL" from being merged
     if (!marketProduct && rawItem.title) {
       // Check if URL is a category page (not a unique product URL)
+      const urlLower = rawItem.product_url?.toLowerCase() || '';
       const isCategoryPage = !rawItem.product_url || 
-                            (!rawItem.product_url.includes('/urun/') && 
-                             !rawItem.product_url.includes('/product/') && 
-                             !rawItem.product_url.includes('/p/') &&
-                             !rawItem.product_url.includes('/aktuel-urunler/') &&
-                             !rawItem.product_url.includes('-p-') &&
-                             !rawItem.product_url.includes('/kapida/'));
+                            (!urlLower.includes('/urun/') && 
+                             !urlLower.includes('/product/') &&
+                             !urlLower.includes('/p/') &&
+                             !urlLower.includes('/aktuel-urunler/') &&
+                             !urlLower.includes('-p-') &&
+                             !urlLower.includes('/kapida/') &&
+                             // Happy Center category pages have /kategori/ or query params
+                             (!urlLower.includes('happycenter.com.tr/') || 
+                              urlLower.includes('/kategori/') || 
+                              urlLower.includes('/category/') ||
+                              urlLower.includes('?page=') ||
+                              urlLower.includes('?q=') ||
+                              urlLower.includes('search=')));
       
       if (isCategoryPage) {
         // On category pages, match by title + price (same product = same title + same price)
