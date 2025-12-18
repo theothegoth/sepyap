@@ -4,7 +4,7 @@ const parserMap = {
   'Getir': 'GetirParser',
   'Migros': 'MigrosParser',
   'CarrefourSA': 'CarrefourSAParser',
-  'HappyCenter': 'HappyCenterParser',
+  'Happy Center': 'HappyCenterParser',
   'Macrocenter': 'MacrocenterParser',
   'A101': 'A101Parser',
   'Sok': 'SokParser',

@@ -2,7 +2,7 @@
 class HappyCenterParser extends BaseParser {
   constructor() {
     super();
-    this.marketName = 'HappyCenter';
+    this.marketName = 'Happy Center'; // Match migration seed data
   }
 
   detectPageType() {
