@@ -6,6 +6,7 @@ const SCROLL_SCAN_DELAY = 5000; // Longer delay for scroll-triggered scans
 const MIN_SCAN_INTERVAL = 10000; // Minimum time between scans (10 seconds)
 let scanTimeout;
 let lastScanTime = 0;
+let isScanning = false; // Flag to prevent multiple simultaneous scans
 
 /**
  * Extract products from the current page
@@ -108,20 +109,31 @@ async function sendData(products) {
   
   console.log(`[GroceryMatcher] Sending ${productsArray.length} products to backend...`);
   
-  chrome.runtime.sendMessage({
-    action: 'sendProductsToBackend',
-    products: productsArray
-  }, (response) => {
-    if (response && response.status === 'success') {
-      console.log(`[GroceryMatcher] Successfully sent to backend:`, {
-        created: response.data?.created || 0,
-        updated: response.data?.updated || 0,
-        errors: response.data?.errors || 0,
-        batches: response.data?.batches || 1
-      });
-    } else {
-      console.error('[GroceryMatcher] Failed to send:', response);
-    }
+  // Convert callback to Promise to properly await completion
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({
+      action: 'sendProductsToBackend',
+      products: productsArray
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[GroceryMatcher] Runtime error:', chrome.runtime.lastError);
+        reject(chrome.runtime.lastError);
+        return;
+      }
+      
+      if (response && response.status === 'success') {
+        console.log(`[GroceryMatcher] Successfully sent to backend:`, {
+          created: response.data?.created || 0,
+          updated: response.data?.updated || 0,
+          errors: response.data?.errors || 0,
+          batches: response.data?.batches || 1
+        });
+        resolve(response);
+      } else {
+        console.error('[GroceryMatcher] Failed to send:', response);
+        reject(new Error(response?.message || 'Unknown error'));
+      }
+    });
   });
 }
 
@@ -129,6 +141,12 @@ async function sendData(products) {
  * Run scan (checks consent before scanning)
  */
 async function runScan() {
+  // Prevent multiple simultaneous scans
+  if (isScanning) {
+    console.log(`[GroceryMatcher] Scan already in progress, skipping...`);
+    return;
+  }
+  
   // Check consent first
   try {
     const consent = await chrome.storage.local.get('dataCollectionConsent');
@@ -151,15 +169,20 @@ async function runScan() {
   }
   
   lastScanTime = now;
+  isScanning = true; // Set flag to prevent concurrent scans
   
-  console.log(`[GroceryMatcher] Starting scan...`);
-  
-  // Extract products
-  const products = extractProducts();
-  if (products.length > 0) {
-    await sendData(products);
-  } else {
-    console.log(`[GroceryMatcher] No products found on this page`);
+  try {
+    console.log(`[GroceryMatcher] Starting scan...`);
+    
+    // Extract products
+    const products = extractProducts();
+    if (products.length > 0) {
+      await sendData(products);
+    } else {
+      console.log(`[GroceryMatcher] No products found on this page`);
+    }
+  } finally {
+    isScanning = false; // Reset flag when scan completes
   }
 }
 
