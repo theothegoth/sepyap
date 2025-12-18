@@ -173,21 +173,27 @@ export class IngestService {
     if (rawItem.product_url) {
       // Check if it's a product detail URL (not a category page)
       const urlLower = rawItem.product_url.toLowerCase();
+      const urlParts = rawItem.product_url.split('/').filter(p => p);
+      
+      // Happy Center specific check: Product URLs are like /Product_Name_Slug or /Category/Product_Name_Slug
+      // Category pages have query params like ?page= or are listing pages
+      const isHappyCenterProduct = urlLower.includes('happycenter.com.tr') &&
+                                   !urlLower.includes('?page=') &&
+                                   !urlLower.includes('?q=') &&
+                                   !urlLower.includes('search=') &&
+                                   !urlLower.includes('/arama') &&
+                                   // Product URLs typically have product name in the last segment (not category names)
+                                   urlParts.length > 0 &&
+                                   // Last segment should be a product slug (contains underscores, not just category name)
+                                   urlParts[urlParts.length - 1].includes('_');
+      
       const isProductUrl = urlLower.includes('/urun/') || 
                           urlLower.includes('/product/') ||
                           urlLower.includes('/p/') ||
                           urlLower.includes('/aktuel-urunler/') ||
                           urlLower.includes('-p-') ||
                           urlLower.includes('/kapida/') ||
-                          // Happy Center: URLs like /Product_Name_Slug (domain + slug, no category path)
-                          (urlLower.includes('happycenter.com.tr/') && 
-                           !urlLower.includes('/kategori/') && 
-                           !urlLower.includes('/category/') &&
-                           !urlLower.includes('/arama') &&
-                           !urlLower.includes('?page=') &&
-                           !urlLower.includes('?q=') &&
-                           !urlLower.includes('search=') &&
-                           rawItem.product_url.split('/').length >= 4); // domain + at least one path segment
+                          isHappyCenterProduct;
       
       if (isProductUrl) {
         // Clean URL (remove query params and fragments for better matching)
@@ -210,6 +216,26 @@ export class IngestService {
     if (!marketProduct && rawItem.title) {
       // Check if URL is a category page (not a unique product URL)
       const urlLower = rawItem.product_url?.toLowerCase() || '';
+      const urlParts = rawItem.product_url?.split('/').filter(p => p) || [];
+      
+      // Happy Center specific check: Product URLs have product slug pattern (underscores in last segment)
+      const isHappyCenterProductUrl = urlLower.includes('happycenter.com.tr') &&
+                                      !urlLower.includes('?page=') &&
+                                      !urlLower.includes('?q=') &&
+                                      !urlLower.includes('search=') &&
+                                      !urlLower.includes('/arama') &&
+                                      urlParts.length > 0 &&
+                                      urlParts[urlParts.length - 1].includes('_');
+      
+      // Happy Center specific check: Category pages have query params or don't have product slug pattern
+      const isHappyCenterCategory = urlLower.includes('happycenter.com.tr') &&
+                                    (urlLower.includes('?page=') ||
+                                     urlLower.includes('?q=') ||
+                                     urlLower.includes('search=') ||
+                                     urlLower.includes('/arama') ||
+                                     urlParts.length === 0 ||
+                                     !urlParts[urlParts.length - 1].includes('_'));
+      
       const isCategoryPage = !rawItem.product_url || 
                             (!urlLower.includes('/urun/') && 
                              !urlLower.includes('/product/') &&
@@ -217,13 +243,8 @@ export class IngestService {
                              !urlLower.includes('/aktuel-urunler/') &&
                              !urlLower.includes('-p-') &&
                              !urlLower.includes('/kapida/') &&
-                             // Happy Center category pages have /kategori/ or query params
-                             (!urlLower.includes('happycenter.com.tr/') || 
-                              urlLower.includes('/kategori/') || 
-                              urlLower.includes('/category/') ||
-                              urlLower.includes('?page=') ||
-                              urlLower.includes('?q=') ||
-                              urlLower.includes('search=')));
+                             !isHappyCenterProductUrl) ||
+                            isHappyCenterCategory;
       
       if (isCategoryPage) {
         // On category pages, match by title + price (same product = same title + same price)
