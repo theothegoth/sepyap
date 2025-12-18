@@ -3,7 +3,6 @@ INSERT INTO markets (name, base_url, delivery_regions, min_order_amount, deliver
 VALUES
   ('Migros', 'https://www.migros.com.tr', NULL, 0, NULL, NULL),
   ('A101', 'https://www.a101.com.tr', NULL, 0, NULL, NULL),
-  ('Bim', 'https://www.bim.com.tr', NULL, 0, NULL, NULL),
   ('CarrefourSA', 'https://www.carrefoursa.com', NULL, 0, NULL, NULL),
   ('Getir', 'https://www.getir.com', NULL, 0, NULL, NULL),
   ('Şok', 'https://www.sokmarket.com.tr', NULL, 0, NULL, NULL),

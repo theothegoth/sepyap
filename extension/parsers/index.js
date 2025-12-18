@@ -8,7 +8,6 @@ const parserMap = {
   'Macrocenter': 'MacrocenterParser',
   'A101': 'A101Parser',
   'Sok': 'SokParser',
-  'Bim': 'BimParser',
   // Add more markets here as you implement them
 };
 
@@ -21,7 +20,6 @@ function getMarketName() {
   if (hostname.includes('sokmarket')) return 'Sok';
   if (hostname.includes('happycenter')) return 'HappyCenter';
   if (hostname.includes('macrocenter')) return 'Macrocenter';
-  if (hostname.includes('bim')) return 'Bim';
   if (hostname.includes('trendyol')) return 'Trendyol';
   if (hostname.includes('yemeksepeti')) return 'Yemeksepeti';
   return 'Unknown';

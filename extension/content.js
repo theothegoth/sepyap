@@ -54,13 +54,22 @@ function extractProducts() {
         debugStats.failed++;
       }
     }
-
     
-    
+    // Log extraction stats
+    console.log(`[GroceryMatcher] Extraction complete:`, {
+      totalCards: cards.length,
+      successful: debugStats.success,
+      failed: debugStats.failed,
+      uniqueProducts: products.length
+    });
     
     // Log first few products for debugging
     if (products.length > 0) {
-      
+      console.log(`[GroceryMatcher] Sample products:`, products.slice(0, 3).map(p => ({
+        title: p.title?.substring(0, 50),
+        price: p.price,
+        url: p.product_url?.substring(0, 60)
+      })));
     }
 
     return products;
@@ -95,14 +104,19 @@ async function sendData(products) {
   // Normalize to array if single product
   const productsArray = Array.isArray(products) ? products : [products];
   
-  
+  console.log(`[GroceryMatcher] Sending ${productsArray.length} products to backend...`);
   
   chrome.runtime.sendMessage({
     action: 'sendProductsToBackend',
     products: productsArray
   }, (response) => {
     if (response && response.status === 'success') {
-      
+      console.log(`[GroceryMatcher] Successfully sent to backend:`, {
+        created: response.data?.created || 0,
+        updated: response.data?.updated || 0,
+        errors: response.data?.errors || 0,
+        batches: response.data?.batches || 1
+      });
     } else {
       console.error('[GroceryMatcher] Failed to send:', response);
     }
@@ -136,12 +150,14 @@ async function runScan() {
   
   lastScanTime = now;
   
+  console.log(`[GroceryMatcher] Starting scan...`);
+  
   // Extract products
   const products = extractProducts();
   if (products.length > 0) {
     await sendData(products);
   } else {
-    
+    console.log(`[GroceryMatcher] No products found on this page`);
   }
 }
 

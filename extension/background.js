@@ -28,7 +28,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'sendProductsToBackend') {
-    
+    console.log(`[GroceryMatcher Background] Received ${request.products.length} products to send`);
 
     const market = request.products[0]?.market || 'Unknown';
     // Backend supports up to 2000 products per batch
@@ -85,6 +85,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       };
 
       try {
+        console.log(`[GroceryMatcher Background] Sending batch ${batchIndex + 1}/${batches.length} (${batch.length} products) to ${backendUrl}`);
+        
         // Create AbortController for timeout (5 minutes for large batches)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes

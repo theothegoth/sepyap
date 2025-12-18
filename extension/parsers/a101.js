@@ -82,12 +82,13 @@ class A101Parser extends BaseParser {
     }
     
     if (allProducts.size > 0) {
-      
+      console.log(`[A101Parser] Found ${allProducts.size} product cards using selectors`);
       return Array.from(allProducts);
     }
 
     // Fallback: product links (A101 URLs are like /kapida/meyve-sebze/product-name_p-id)
     const links = document.querySelectorAll('a[href*="/kapida/"][href*="_p-"]');
+    console.log(`[A101Parser] Fallback: Found ${links.length} product links`);
     
     return Array.from(links);
   }

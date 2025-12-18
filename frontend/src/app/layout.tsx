@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | SepYap"
   },
   description: "Compare grocery prices across all major Turkish markets (Migros, CarrefourSA, Getir, A101) and find the cheapest shopping cart. Save money on your groceries with real-time price comparison.",
-  keywords: ["grocery", "price comparison", "shopping", "migros", "carrefour", "getir", "a101", "bim", "şok", "cheap groceries", "grocery prices", "market comparison", "turkey", "türkiye", "market fiyat karşılaştırma", "en ucuz market", "alışveriş fiyat karşılaştırma"],
+  keywords: ["grocery", "price comparison", "shopping", "migros", "carrefour", "getir", "a101", "şok", "cheap groceries", "grocery prices", "market comparison", "turkey", "türkiye", "market fiyat karşılaştırma", "en ucuz market", "alışveriş fiyat karşılaştırma"],
   authors: [{ name: "SepYap" }],
   creator: "SepYap",
   publisher: "SepYap",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     url: '/',
     siteName: 'SepYap',
     title: 'SepYap - Tüm Marketlerde En Ucuz Fiyatları Bulun',
-    description: 'Migros, CarrefourSA, Getir, A101, Bim, Şok ve daha fazlasında fiyatları karşılaştırın. En ucuz alışveriş sepetini bulun ve paradan tasarruf edin.',
+    description: 'Migros, CarrefourSA, Getir, A101, Şok ve daha fazlasında fiyatları karşılaştırın. En ucuz alışveriş sepetini bulun ve paradan tasarruf edin.',
     images: [
       {
         url: '/og-image.png',

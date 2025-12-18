@@ -19,7 +19,6 @@
     "https://*.sokmarket.com.tr/*",
     "https://*.happycenter.com.tr/*",
     "https://*.macrocenter.com.tr/*",
-    "https://*.bim.com.tr/*",
     "https://*.trendyol.com/*",
     "https://*.yemeksepeti.com/*"
   ],
@@ -39,7 +38,6 @@
         "https://*.sokmarket.com.tr/*",
         "https://*.happycenter.com.tr/*",
         "https://*.macrocenter.com.tr/*",
-        "https://*.bim.com.tr/*",
         "https://*.trendyol.com/*",
         "https://*.yemeksepeti.com/*"
       ],
@@ -52,7 +50,6 @@
         "parsers/macrocenter.js",
         "parsers/a101.js",
         "parsers/sok.js",
-        "parsers/bim.js",
         "parsers/index.js",
         "content.js"
       ],

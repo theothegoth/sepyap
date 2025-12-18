@@ -135,7 +135,7 @@ export default function LandingPage() {
                   Çoklu Market Karşılaştırması
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Migros, CarrefourSA, Getir, A101, Bim, Şok ve daha fazlasını karşılaştırın
+                  Migros, CarrefourSA, Getir, A101, Şok ve daha fazlasını karşılaştırın
                 </p>
               </div>
               <div className="card">
@@ -279,7 +279,7 @@ export default function LandingPage() {
                   Hangi marketleri destekliyor?
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Migros, CarrefourSA, Getir, A101, Bim, Şok, Happy Center, Macro Center ve daha fazlası.
+                  Migros, CarrefourSA, Getir, A101, Şok, Happy Center, Macro Center ve daha fazlası.
                 </p>
               </div>
               <div className="card">

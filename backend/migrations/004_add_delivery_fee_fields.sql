@@ -20,7 +20,6 @@ WHERE delivery_fee IS NULL;
 -- UPDATE markets SET delivery_fee = 20.00, free_delivery_threshold = 200.00 WHERE name = 'CarrefourSA';
 -- UPDATE markets SET delivery_fee = 10.00, free_delivery_threshold = 100.00 WHERE name = 'A101';
 -- UPDATE markets SET delivery_fee = 15.00, free_delivery_threshold = 150.00 WHERE name = 'Sok';
--- UPDATE markets SET delivery_fee = 20.00, free_delivery_threshold = 200.00 WHERE name = 'Bim';
 -- UPDATE markets SET delivery_fee = 20.00, free_delivery_threshold = 200.00 WHERE name = 'HappyCenter';
 -- UPDATE markets SET delivery_fee = 20.00, free_delivery_threshold = 200.00 WHERE name = 'Macrocenter';
 
