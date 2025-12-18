@@ -56,6 +56,8 @@ export class IngestService {
 
     for (const batch of batches) {
       // Process batch in a transaction for better performance
+      const priceHistoryQueue: Array<{marketProductId: number, price: number, priceCard?: number | null}> = [];
+      
       await this.marketProductRepo.manager.transaction(async (transactionalEntityManager) => {
         for (const item of batch) {
           try {
@@ -63,12 +65,41 @@ export class IngestService {
             if (result.created) createdCount++;
             else updatedCount++;
             savedCount++;
+            
+            // Queue price history to record after transaction commits
+            if (result.priceHistoryInfo) {
+              priceHistoryQueue.push(result.priceHistoryInfo);
+            }
           } catch (err) {
             this.logger.error(`Failed to save product ${item.title}: ${err.message}`);
             errors++;
           }
         }
       });
+      
+      // Record price history after transaction commits (to avoid foreign key constraint errors)
+      for (const phInfo of priceHistoryQueue) {
+        try {
+          const oldPrice = await this.priceHistoryService.recordPriceChange(
+            phInfo.marketProductId,
+            phInfo.price,
+            phInfo.priceCard
+          );
+          
+          // Check for price drop alerts if price decreased
+          if (oldPrice !== null && oldPrice > phInfo.price) {
+            try {
+              await this.alertsService.checkPriceDrops(phInfo.marketProductId, oldPrice, phInfo.price);
+            } catch (error) {
+              this.logger.error(`[Alerts] Error checking price drops: ${error.message}`);
+              // Don't fail if alerts fail
+            }
+          }
+        } catch (error) {
+          this.logger.error(`[PriceHistory] Error recording price change: ${error.message}`);
+          // Don't fail if price history fails
+        }
+      }
     }
 
     this.logger.log(`Summary: ${createdCount} created, ${updatedCount} updated, ${errors} errors`);
@@ -317,29 +348,13 @@ export class IngestService {
 
       await repo.save(marketProduct);
       
-      // Record price history if price changed
-      if (priceChanged) {
-        try {
-          const oldPrice = await this.priceHistoryService.recordPriceChange(
-            marketProduct.id,
-            price,
-            priceCard
-          );
-          
-          // Check for price drop alerts if price decreased
-          if (oldPrice !== null && oldPrice > price) {
-            try {
-              await this.alertsService.checkPriceDrops(marketProduct.id, oldPrice, price);
-            } catch (error) {
-              this.logger.error(`[Alerts] Error checking price drops: ${error.message}`);
-              // Don't fail if alerts fail
-            }
-          }
-        } catch (error) {
-          this.logger.error(`[PriceHistory] Error recording price change: ${error.message}`);
-          // Don't fail the save if price history fails
-        }
-      }
+      // Return price history info to record after transaction commits
+      // (Foreign key constraint requires transaction to be committed first)
+      const priceHistoryInfo = priceChanged ? {
+        marketProductId: marketProduct.id,
+        price,
+        priceCard
+      } : null;
       
       // Match product after saving (link to Product master)
       try {
@@ -354,7 +369,7 @@ export class IngestService {
         // Don't fail the save if matching fails
       }
       
-      return { created: false };
+      return { created: false, priceHistoryInfo };
     } else {
       // CREATE NEW
       this.logger.log(`[CREATE] New product: "${rawItem.title?.substring(0, 50)}" (${price} TL)`);
@@ -379,18 +394,13 @@ export class IngestService {
       });
       await repo.save(marketProduct);
       
-      // Record initial price history for new product
-      try {
-        await this.priceHistoryService.recordPriceChange(
-          marketProduct.id,
-          price,
-          priceCard
-        );
-        // No alerts for new products (no price drop yet)
-      } catch (error) {
-        this.logger.error(`[PriceHistory] Error recording initial price: ${error.message}`);
-        // Don't fail the save if price history fails
-      }
+      // Return price history info to record after transaction commits
+      // (Foreign key constraint requires transaction to be committed first)
+      const priceHistoryInfo = {
+        marketProductId: marketProduct.id,
+        price,
+        priceCard
+      };
       
       // Match product after saving (link to Product master)
       try {
@@ -405,7 +415,7 @@ export class IngestService {
         // Don't fail the save if matching fails
       }
       
-      return { created: true };
+      return { created: true, priceHistoryInfo };
     }
   }
 
