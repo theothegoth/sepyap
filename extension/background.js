@@ -87,6 +87,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         console.log(`[GroceryMatcher Background] Sending batch ${batchIndex + 1}/${batches.length} (${batch.length} products) to ${backendUrl}`);
         
+        // Log first product in batch for debugging
+        if (batch.length > 0) {
+          console.log(`[GroceryMatcher Background] First product in batch:`, JSON.stringify(batch[0], null, 2));
+        }
+        
         // Create AbortController for timeout (5 minutes for large batches)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
@@ -108,11 +113,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const data = await response.json();
         
+        // Log full response for debugging
+        console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} response:`, JSON.stringify(data, null, 2));
         
         if (data.result) {
           totalCreated += data.result.created || 0;
           totalUpdated += data.result.updated || 0;
           totalErrors += data.result.errors || 0;
+          
+          // Log error details if any
+          if (data.result.errors > 0 && data.result.errorDetails) {
+            console.error(`[GroceryMatcher Background] Batch ${batchIndex + 1} errors:`, data.result.errorDetails);
+          }
+        } else if (data.error || data.message) {
+          console.error(`[GroceryMatcher Background] Batch ${batchIndex + 1} error response:`, data);
+          totalErrors += batch.length;
         }
 
         completedBatches++;

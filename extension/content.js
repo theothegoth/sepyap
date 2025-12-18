@@ -63,13 +63,15 @@ function extractProducts() {
       uniqueProducts: products.length
     });
     
-    // Log first few products for debugging
+    // Log first few products for debugging (with full structure)
     if (products.length > 0) {
       console.log(`[GroceryMatcher] Sample products:`, products.slice(0, 3).map(p => ({
         title: p.title?.substring(0, 50),
         price: p.price,
         url: p.product_url?.substring(0, 60)
       })));
+      // Log full structure of first product for debugging
+      console.log(`[GroceryMatcher] Full structure of first product:`, JSON.stringify(products[0], null, 2));
     }
 
     return products;
