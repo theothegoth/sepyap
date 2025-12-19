@@ -149,12 +149,23 @@ async function runScan() {
   
   // Check consent first
   try {
+    // Check if extension context is still valid
+    if (!chrome.runtime?.id) {
+      console.warn('[GroceryMatcher] Extension context invalidated, skipping scan');
+      return;
+    }
+    
     const consent = await chrome.storage.local.get('dataCollectionConsent');
     if (!consent.dataCollectionConsent) {
       
       return;
     }
   } catch (error) {
+    // Handle "Extension context invalidated" error gracefully
+    if (error.message && error.message.includes('Extension context invalidated')) {
+      console.warn('[GroceryMatcher] Extension context invalidated, please reload the page');
+      return;
+    }
     console.error('[GroceryMatcher] Error checking consent:', error);
     return;
   }
