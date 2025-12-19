@@ -83,6 +83,20 @@ async function bootstrap() {
     ? process.env.ALLOWED_ORIGINS.split(',')
     : ['http://localhost:3001', 'http://127.0.0.1:3001'];
   
+  // Handle OPTIONS requests manually before CORS middleware
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      console.log(`[CORS] OPTIONS request for ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With, Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      return res.status(204).send();
+    }
+    next();
+  });
+
   app.enableCors({
     origin: (origin, callback) => {
       // Log all CORS checks for debugging
