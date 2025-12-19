@@ -32,7 +32,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     const market = request.products[0]?.market || 'Unknown';
     // Backend supports up to 2000 products per batch, but we use smaller batches to avoid timeout
-    const BATCH_SIZE = 100; // Smaller batches to avoid 504 Gateway Timeout
+    const BATCH_SIZE = 50; // Even smaller batches to avoid 504 Gateway Timeout
     
     // Split products into batches if needed (for very large pages)
     const batches = [];
@@ -62,7 +62,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let totalUpdated = 0;
     let totalErrors = 0;
 
-    const sendBatch = async (batchIndex) => {
+    const sendBatch = async (batchIndex, retryCount = 0) => {
       if (batchIndex >= batches.length) {
         // All batches sent
         
@@ -84,8 +84,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         items: batch
       };
 
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY = 2000; // 2 seconds
+
       try {
-        console.log(`[GroceryMatcher Background] Sending batch ${batchIndex + 1}/${batches.length} (${batch.length} products) to ${backendUrl}`);
+        console.log(`[GroceryMatcher Background] Sending batch ${batchIndex + 1}/${batches.length} (${batch.length} products) to ${backendUrl}${retryCount > 0 ? ` (retry ${retryCount}/${MAX_RETRIES})` : ''}`);
         
         // Log first product in batch for debugging
         if (batch.length > 0) {
@@ -119,6 +122,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
+          // Retry on 504 Gateway Timeout or 503 Service Unavailable
+          if ((response.status === 504 || response.status === 503) && retryCount < MAX_RETRIES) {
+            console.warn(`[GroceryMatcher Background] Batch ${batchIndex + 1} failed with ${response.status}, retrying in ${RETRY_DELAY}ms...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1))); // Exponential backoff
+            return sendBatch(batchIndex, retryCount + 1);
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
