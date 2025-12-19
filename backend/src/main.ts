@@ -56,12 +56,12 @@ async function bootstrap() {
     next();
   });
 
-  // Increase request timeout for ingest operations (up to 5 minutes for large batches)
+  // Increase request timeout for ingest operations (up to 10 minutes for large batches)
   app.use((req, res, next) => {
-    // Set timeout to 5 minutes for ingest endpoint
+    // Set timeout to 10 minutes for ingest endpoint
     if (req.path === '/api/ingest' && req.method === 'POST') {
-      req.setTimeout(5 * 60 * 1000); // 5 minutes
-      res.setTimeout(5 * 60 * 1000); // 5 minutes
+      req.setTimeout(10 * 60 * 1000); // 10 minutes
+      res.setTimeout(10 * 60 * 1000); // 10 minutes
     }
     next();
   });

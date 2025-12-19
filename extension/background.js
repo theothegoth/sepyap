@@ -31,8 +31,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log(`[GroceryMatcher Background] Received ${request.products.length} products to send`);
 
     const market = request.products[0]?.market || 'Unknown';
-    // Backend supports up to 2000 products per batch
-    const BATCH_SIZE = 2000;
+    // Backend supports up to 2000 products per batch, but we use smaller batches to avoid timeout
+    const BATCH_SIZE = 100; // Smaller batches to avoid 504 Gateway Timeout
     
     // Split products into batches if needed (for very large pages)
     const batches = [];
@@ -92,9 +92,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.log(`[GroceryMatcher Background] First product in batch:`, JSON.stringify(batch[0], null, 2));
         }
         
-        // Create AbortController for timeout (5 minutes for large batches)
+        // Create AbortController for timeout (10 minutes for large batches)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
+        const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes
 
         // Log request details before sending
         console.log(`[GroceryMatcher Background] Request details:`, {
