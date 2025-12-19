@@ -100,7 +100,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log(`[GroceryMatcher Background] Request details:`, {
           url: backendUrl,
           method: 'POST',
-          origin: window.location.origin || 'chrome-extension',
+          origin: 'chrome-extension://' + chrome.runtime.id,
           payloadSize: JSON.stringify(payload).length,
           productCount: batch.length
         });
