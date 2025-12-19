@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Body, Query, Logger, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Logger, BadRequestException, Options, Header, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { Response } from 'express';
 import { IngestService } from './ingest.service';
 
 @Controller('api/ingest')
@@ -7,6 +8,15 @@ export class IngestController {
   private readonly logger = new Logger(IngestController.name);
 
   constructor(private readonly ingestService: IngestService) {}
+
+  @Options()
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With')
+  @Header('Access-Control-Max-Age', '86400')
+  handleOptions(@Res() res: Response) {
+    return res.status(204).send();
+  }
 
   @Post()
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // Max 100 requests per minute per IP

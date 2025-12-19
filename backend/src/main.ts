@@ -41,41 +41,50 @@ async function bootstrap() {
     }),
   );
   
-  // Enable CORS - more secure but still allows extension
+  // Enable CORS - allow Chrome extensions and web frontend
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
     : ['http://localhost:3001', 'http://127.0.0.1:3001'];
   
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, Postman, or extension)
-      // Chrome extensions send requests with chrome-extension:// origin
+      // Always allow requests with no origin (mobile apps, Postman, curl, some extension requests)
       if (!origin) {
-        // No origin header (e.g., Postman, curl, or some extension requests)
         callback(null, true);
         return;
       }
       
-      // Check if it's a Chrome extension
+      // Always allow Chrome extensions (they use chrome-extension:// protocol)
       if (origin.startsWith('chrome-extension://')) {
         callback(null, true);
         return;
       }
       
-      // Check if it's in allowed origins
+      // Allow configured web origins
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
       
-      // Reject all other origins
+      // Log rejected origins for debugging
+      console.log(`[CORS] Rejected origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['Content-Length', 'X-Request-Id'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Requested-With',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+    ],
+    exposedHeaders: ['Content-Length', 'X-Request-Id', 'Content-Type'],
     credentials: true,
-    maxAge: 86400, // 24 hours
+    maxAge: 86400, // 24 hours - cache preflight requests
+    preflightContinue: false, // Let NestJS handle preflight
+    optionsSuccessStatus: 204, // Return 204 for successful OPTIONS
   });
 
   // Listen on 0.0.0.0 to allow Docker port mapping to work
