@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { IngestModule } from './ingest/ingest.module';
@@ -6,6 +7,7 @@ import { OptimizationModule } from './optimization/optimization.module';
 import { MatchingModule } from './matching/matching.module';
 import { PriceHistoryModule } from './price-history/price-history.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { CorsInterceptor } from './common/cors.interceptor';
 
 @Module({
   imports: [
@@ -36,6 +38,12 @@ import { AlertsModule } from './alerts/alerts.module';
     MatchingModule,
     PriceHistoryModule,
     AlertsModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CorsInterceptor,
+    },
   ],
 })
 export class AppModule {}
