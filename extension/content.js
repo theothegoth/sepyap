@@ -109,6 +109,13 @@ async function sendData(products) {
   
   console.log(`[GroceryMatcher] Sending ${productsArray.length} products to backend...`);
   
+  // Check if extension context is still valid before sending message
+  if (!chrome.runtime?.id) {
+    const error = new Error('Extension context invalidated');
+    console.warn('[GroceryMatcher] Extension context invalidated, cannot send products');
+    return Promise.reject(error);
+  }
+  
   // Convert callback to Promise to properly await completion
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({
@@ -116,7 +123,12 @@ async function sendData(products) {
       products: productsArray
     }, (response) => {
       if (chrome.runtime.lastError) {
-        console.error('[GroceryMatcher] Runtime error:', chrome.runtime.lastError);
+        // Handle "Extension context invalidated" error gracefully
+        if (chrome.runtime.lastError.message && chrome.runtime.lastError.message.includes('Extension context invalidated')) {
+          console.warn('[GroceryMatcher] Extension context invalidated, please reload the page');
+        } else {
+          console.error('[GroceryMatcher] Runtime error:', chrome.runtime.lastError);
+        }
         reject(chrome.runtime.lastError);
         return;
       }
