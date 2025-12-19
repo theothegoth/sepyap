@@ -161,8 +161,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         completedBatches++;
-        // Send next batch after a small delay to avoid overwhelming the server
-        setTimeout(() => sendBatch(batchIndex + 1), 100);
+        // Send next batch after a delay to avoid overwhelming the server and prevent timeout
+        // Increased delay to give backend more time to process each batch
+        setTimeout(() => sendBatch(batchIndex + 1), 500); // 500ms delay between batches
       } catch (error) {
         if (error.name === 'AbortError') {
           console.error(`Timeout sending batch ${batchIndex + 1} (${batch.length} products)`);
