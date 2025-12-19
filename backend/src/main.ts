@@ -19,6 +19,14 @@ async function bootstrap() {
   // Increase body size limit to 50MB to handle large product batches (up to 2000 products)
   app.use(json({ limit: '50mb' }));
   
+  // Log all requests for debugging (especially CORS issues)
+  app.use((req, res, next) => {
+    if (req.path === '/api/ingest') {
+      console.log(`[Request] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'} - Content-Type: ${req.headers['content-type'] || 'none'}`);
+    }
+    next();
+  });
+
   // Increase request timeout for ingest operations (up to 5 minutes for large batches)
   app.use((req, res, next) => {
     // Set timeout to 5 minutes for ingest endpoint
@@ -48,20 +56,26 @@ async function bootstrap() {
   
   app.enableCors({
     origin: (origin, callback) => {
+      // Log all CORS checks for debugging
+      console.log(`[CORS] Checking origin: ${origin || 'none'}`);
+      
       // Always allow requests with no origin (mobile apps, Postman, curl, some extension requests)
       if (!origin) {
+        console.log(`[CORS] Allowing request with no origin`);
         callback(null, true);
         return;
       }
       
       // Always allow Chrome extensions (they use chrome-extension:// protocol)
       if (origin.startsWith('chrome-extension://')) {
+        console.log(`[CORS] Allowing Chrome extension: ${origin}`);
         callback(null, true);
         return;
       }
       
       // Allow configured web origins
       if (allowedOrigins.includes(origin)) {
+        console.log(`[CORS] Allowing configured origin: ${origin}`);
         callback(null, true);
         return;
       }

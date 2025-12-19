@@ -96,13 +96,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutes
 
+        // Log request details before sending
+        console.log(`[GroceryMatcher Background] Request details:`, {
+          url: backendUrl,
+          method: 'POST',
+          origin: window.location.origin || 'chrome-extension',
+          payloadSize: JSON.stringify(payload).length,
+          productCount: batch.length
+        });
+
         const response = await fetch(backendUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json; charset=utf-8'
           },
           body: JSON.stringify(payload),
-          signal: controller.signal
+          signal: controller.signal,
+          // Explicitly set mode to cors (though extensions don't need it)
+          mode: 'cors'
         });
 
         clearTimeout(timeoutId);
