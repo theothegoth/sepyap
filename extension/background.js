@@ -172,7 +172,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         totalErrors += batch.length;
         // Continue with next batch even if this one failed
-        setTimeout(() => sendBatch(batchIndex + 1), 100);
+        // Increased delay to give backend more time to recover
+        setTimeout(() => sendBatch(batchIndex + 1), 1000); // 1 second delay after error
       }
     };
 
