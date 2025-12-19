@@ -28,19 +28,31 @@ async function bootstrap() {
   });
 
   // Ensure CORS headers are always set on responses (especially for Chrome extensions)
+  // This middleware runs AFTER CORS middleware to ensure headers are set
   app.use((req, res, next) => {
-    // Set CORS headers before response is sent
+    // Override CORS headers to ensure they're always set
     const origin = req.headers.origin;
     if (origin && origin.startsWith('chrome-extension://')) {
       res.setHeader('Access-Control-Allow-Origin', origin);
-    } else if (!origin) {
-      // No origin header (Chrome extensions sometimes don't send it)
-      // Allow all origins for extension requests
+    } else {
+      // No origin or other origin - allow all for extension requests
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With, Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, X-Request-Id, Content-Type');
+    
+    // Also set headers on response finish to ensure they're sent
+    const originalEnd = res.end;
+    res.end = function(...args) {
+      res.setHeader('Access-Control-Allow-Origin', origin && origin.startsWith('chrome-extension://') ? origin : '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With, Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      originalEnd.apply(res, args);
+    };
+    
     next();
   });
 
