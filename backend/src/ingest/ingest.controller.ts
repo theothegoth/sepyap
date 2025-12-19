@@ -19,42 +19,31 @@ export class IngestController {
   }
 
   @Post()
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With')
+  @Header('Access-Control-Allow-Credentials', 'true')
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // Max 100 requests per minute per IP
-  async ingest(@Body() payload: { market: string; items: any[] }, @Req() req: Request, @Res() res: Response) {
+  async ingest(@Body() payload: { market: string; items: any[] }, @Req() req: Request) {
     const { market, items } = payload;
-    
-    // Set CORS headers explicitly on response
-    const origin = req.headers.origin;
-    if (origin && origin.startsWith('chrome-extension://')) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With');
     
     if (!items || !Array.isArray(items)) {
        this.logger.warn('Invalid payload received');
-       return res.status(400).json({ success: false, message: 'No items provided' });
+       throw new BadRequestException('No items provided');
     }
 
     // Limit batch size to prevent abuse (raised to handle large product pages)
     const MAX_BATCH_SIZE = 2000;
     if (items.length > MAX_BATCH_SIZE) {
       this.logger.warn(`Batch size ${items.length} exceeds maximum ${MAX_BATCH_SIZE}`);
-      return res.status(400).json({ success: false, message: `Batch size cannot exceed ${MAX_BATCH_SIZE} items` });
+      throw new BadRequestException(`Batch size cannot exceed ${MAX_BATCH_SIZE} items`);
     }
 
     this.logger.log(`Received ${items.length} products from ${market}`);
     
-    try {
-      const result = await this.ingestService.processIngestedProducts(items);
-      return res.json({ success: true, count: items.length, result });
-    } catch (error) {
-      this.logger.error(`Error processing batch: ${error.message}`, error.stack);
-      return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
-    }
+    const result = await this.ingestService.processIngestedProducts(items);
+    
+    return { success: true, count: items.length, result };
   }
 
   @Get('debug')
