@@ -27,6 +27,23 @@ async function bootstrap() {
     next();
   });
 
+  // Ensure CORS headers are always set on responses (especially for Chrome extensions)
+  app.use((req, res, next) => {
+    // Set CORS headers before response is sent
+    const origin = req.headers.origin;
+    if (origin && origin.startsWith('chrome-extension://')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (!origin) {
+      // No origin header (Chrome extensions sometimes don't send it)
+      // Allow all origins for extension requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    next();
+  });
+
   // Increase request timeout for ingest operations (up to 5 minutes for large batches)
   app.use((req, res, next) => {
     // Set timeout to 5 minutes for ingest endpoint
