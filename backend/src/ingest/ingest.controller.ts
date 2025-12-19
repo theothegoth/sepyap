@@ -1,6 +1,5 @@
-import { Controller, Post, Get, Body, Query, Logger, BadRequestException, Options, Header, Res, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Logger, BadRequestException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { Response, Request } from 'express';
 import { IngestService } from './ingest.service';
 
 @Controller('api/ingest')
@@ -9,22 +8,9 @@ export class IngestController {
 
   constructor(private readonly ingestService: IngestService) {}
 
-  @Options()
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
-  @Header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With')
-  @Header('Access-Control-Max-Age', '86400')
-  handleOptions(@Res() res: Response) {
-    return res.status(204).send();
-  }
-
   @Post()
-  @Header('Access-Control-Allow-Origin', '*')
-  @Header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
-  @Header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With')
-  @Header('Access-Control-Allow-Credentials', 'true')
   @Throttle({ default: { limit: 100, ttl: 60000 } }) // Max 100 requests per minute per IP
-  async ingest(@Body() payload: { market: string; items: any[] }, @Req() req: Request) {
+  async ingest(@Body() payload: { market: string; items: any[] }) {
     const { market, items } = payload;
     
     if (!items || !Array.isArray(items)) {
