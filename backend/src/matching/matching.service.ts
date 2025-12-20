@@ -300,6 +300,11 @@ export class MatchingService {
     // Prioritize exact/contains matches, then fuzzy matches
     const exactMatches = scoredProducts
       .filter(item => {
+        // Special debug for "Su" product
+        if (item.product.canonical_title === 'Su' || item.product.canonical_title.toLowerCase().includes('su')) {
+          this.logger.debug(`[Search] Processing "Su" product: canonical_title="${item.product.canonical_title}", similarity=${(item.similarity * 100).toFixed(1)}%, containsMatch=${item.containsMatch}, isSingleWordQuery=${isSingleWordQuery}`);
+        }
+        
         // If single word query, must have containsMatch (word-based)
         if (isSingleWordQuery && !item.containsMatch) {
           this.logger.debug(`[Search] Rejecting "${item.product.canonical_title}" (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: false) - single word query requires word match`);
