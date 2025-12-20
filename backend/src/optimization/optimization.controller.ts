@@ -17,7 +17,7 @@ export class OptimizationController {
     const includeBrands = payload.includeBrands || [];
     const excludeBrands = payload.excludeBrands || [];
     const allowedMarkets = payload.allowedMarkets || [];
-    this.logger.debug(
+    this.logger.log(
       `[OptimizationController] Received allowedMarkets: [${allowedMarkets.join(', ')}] (length: ${allowedMarkets.length})`,
     );
 
