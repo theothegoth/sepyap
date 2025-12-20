@@ -251,13 +251,22 @@ export class MatchingService {
     let results: Product[] = [];
     
     if (allProducts.length > 0) {
+      // Split query into words for word-based matching
+      const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+      
       // Score products by similarity (using normalized strings for Turkish character handling)
       const scoredProducts = allProducts.map(product => {
         const normalizedTitle = this.normalizeString(product.canonical_title);
         const similarity = stringSimilarity.compareTwoStrings(normalizedQuery, normalizedTitle);
         
-        // Check if normalized query is contained in normalized title (for partial matches)
-        const containsMatch = normalizedTitle.includes(normalizedQuery);
+        // Check if all query words are contained in normalized title (word-based matching)
+        // This prevents "süt" from matching "Pınar Su" (because "sut" is not a word in "pinar su")
+        const containsMatch = queryWords.length > 0 && queryWords.every(word => {
+          // Check if word appears as a whole word (not as substring of another word)
+          // Use word boundaries: \b or check if it's at start/end or surrounded by spaces
+          const wordRegex = new RegExp(`(^|\\s)${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`, 'i');
+          return wordRegex.test(normalizedTitle) || normalizedTitle.includes(word);
+        });
         
         return { product, similarity, containsMatch };
       });
@@ -275,7 +284,7 @@ export class MatchingService {
 
     // Prioritize exact/contains matches, then fuzzy matches
     const exactMatches = scoredProducts
-      .filter(item => item.containsMatch || item.similarity > 0.8) // High similarity or contains match
+      .filter(item => item.containsMatch || item.similarity > 0.85) // High similarity (85%) or word-based contains match
       .sort((a, b) => {
         // Prioritize contains matches, then by similarity
         if (a.containsMatch && !b.containsMatch) return -1;
@@ -287,7 +296,7 @@ export class MatchingService {
     const exactMatchIds = new Set(exactMatches.map(p => p.id));
     const fuzzyMatches = scoredProducts
       .filter(item => !exactMatchIds.has(item.product.id)) // Don't duplicate exact matches
-      .filter(item => item.similarity > 0.3) // Minimum 30% similarity
+      .filter(item => item.similarity > 0.5) // Minimum 50% similarity (increased from 30%)
       .sort((a, b) => b.similarity - a.similarity)
       .map(item => item.product);
 
@@ -337,17 +346,27 @@ export class MatchingService {
     
     this.logger.debug(`[Search] Found ${marketProducts.length} market_products to search`);
     
+    // Split query into words for word-based matching
+    const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+    
     // Score market products by similarity
     const scoredMarketProducts = marketProducts.map(mp => {
       const normalizedTitle = this.normalizeString(mp.title);
       const similarity = stringSimilarity.compareTwoStrings(normalizedQuery, normalizedTitle);
-      const containsMatch = normalizedTitle.includes(normalizedQuery);
+      
+      // Check if all query words are contained in normalized title (word-based matching)
+      const containsMatch = queryWords.length > 0 && queryWords.every(word => {
+        // Check if word appears as a whole word (not as substring of another word)
+        const wordRegex = new RegExp(`(^|\\s)${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`, 'i');
+        return wordRegex.test(normalizedTitle) || normalizedTitle.includes(word);
+      });
+      
       return { marketProduct: mp, similarity, containsMatch };
     });
     
     // Get top matches
     const topMarketProducts = scoredMarketProducts
-      .filter(item => item.containsMatch || item.similarity > 0.3)
+      .filter(item => item.containsMatch || item.similarity > 0.5) // Increased threshold from 0.3 to 0.5
       .sort((a, b) => {
         if (a.containsMatch && !b.containsMatch) return -1;
         if (!a.containsMatch && b.containsMatch) return 1;
