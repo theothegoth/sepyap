@@ -19,9 +19,10 @@ export class MatchingService {
   ) {}
 
   /**
-   * Normalize a string for comparison (case-insensitive, handles Turkish characters)
-   * Converts to lowercase and normalizes Turkish character variations
-   * Example: "PASTIRMA" and "pastırma" both normalize to "pastirma"
+   * Normalize a string for comparison (case-insensitive, preserves Turkish characters)
+   * Only converts to lowercase, does NOT convert Turkish characters to English equivalents
+   * This is important for Turkish market: "süt" should NOT match "şut"
+   * Example: "PASTIRMA" and "pastırma" both normalize to "pastırma" (Turkish chars preserved)
    */
   private normalizeString(str: string): string {
     if (!str) return '';
@@ -34,19 +35,14 @@ export class MatchingService {
       .toLowerCase()
       .trim();
     
-    // Normalize Turkish character variations for better matching
-    // This ensures "PASTIRMA" matches "pastırma" (both become "pastirma")
-    normalized = normalized
-      .replace(/ı/g, 'i') // Convert dotless i to regular i for matching
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ş/g, 's')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c');
+    // DO NOT convert Turkish characters to English equivalents
+    // Keep: ı, ğ, ü, ş, ö, ç as they are
+    // This ensures "süt" does NOT match "şut" or "su"
     
-    // Remove special chars, keep alphanumeric and spaces
+    // Remove special chars (punctuation, etc.), keep alphanumeric, Turkish chars, and spaces
+    // \w in JavaScript includes Turkish chars, but we'll be explicit
     normalized = normalized
-      .replace(/[^\w\s]/g, '') // Remove special chars
+      .replace(/[^\w\sığüşöçİĞÜŞÖÇ]/g, '') // Remove special chars, keep Turkish chars
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
     
