@@ -252,7 +252,7 @@ export class OptimizationService {
             }
           }
           
-          // If no candidate matches, log warning but use first candidate anyway
+          // If no candidate matches, skip this item (don't use first candidate)
           const finalTitle = chosenProduct.title.toLowerCase();
           const finalWordsMatch = queryWords.every(word => {
             const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -262,8 +262,9 @@ export class OptimizationService {
           
           if (!finalWordsMatch) {
             this.logger.warn(
-              `[Optimization] No candidate matches query "${item.query}" - using first candidate "${chosenProduct.title}" anyway`,
+              `[Optimization] No candidate matches query "${item.query}" - skipping item. First candidate was "${chosenProduct.title}" but it doesn't contain query words.`,
             );
+            continue; // Skip this item instead of using wrong product
           }
         }
       }
@@ -574,10 +575,14 @@ export class OptimizationService {
       order: { name: 'ASC' },
     });
 
-    const result = markets.map((m) => ({
-      id: m.id,
-      name: m.name,
-    }));
+    // Filter out "Sok" (should be "Şok" with Turkish character)
+    // This prevents duplicate "Sok" and "Şok" in the market filter
+    const result = markets
+      .filter((m) => m.name !== 'Sok') // Remove "Sok" if it exists
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+      }));
 
     // Update cache
     this.marketsCache = {
