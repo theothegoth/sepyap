@@ -349,9 +349,37 @@ export class OptimizationService {
       for (const item of cartItems) {
         const key = item.productId || item.query || 'unknown';
         const candidates = candidatesMap.get(key) || [];
-        const candidateForMarket = candidates.find(
-          (c) => c.market?.name === marketName,
-        );
+        
+        // Find candidate for this market, but validate query words if query string provided
+        let candidateForMarket: MarketProduct | undefined = undefined;
+        
+        if (item.query && item.query.trim()) {
+          // For query-based items, validate that candidate title contains query words
+          const queryWords = item.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+          
+          // Try to find a candidate for this market that matches query words
+          for (const candidate of candidates) {
+            if (candidate.market?.name === marketName) {
+              const candidateTitle = candidate.title.toLowerCase();
+              const allWordsMatch = queryWords.every(word => {
+                const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
+                return wordRegex.test(candidateTitle);
+              });
+              
+              if (allWordsMatch) {
+                candidateForMarket = candidate;
+                break;
+              }
+            }
+          }
+        } else {
+          // For productId-based items, just find first candidate for this market
+          candidateForMarket = candidates.find(
+            (c) => c.market?.name === marketName,
+          );
+        }
+        
         if (!candidateForMarket) {
           canServeAllItems = false;
           break;
