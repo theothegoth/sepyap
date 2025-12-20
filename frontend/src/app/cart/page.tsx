@@ -406,15 +406,18 @@ function CartContent() {
                             checked={checked}
                             onChange={(e) => {
                               setAllowedMarkets((prev) => {
-                                // İlk kez dokunuluyorsa (prev boş), "tüm marketler seçili" varsayımını gerçek listeye çevir
-                                const base = prev.length === 0 ? allMarketNames : prev;
-
                                 if (e.target.checked) {
                                   // İşaretleniyorsa, listede yoksa ekle
-                                  return base.includes(marketName) ? base : [...base, marketName];
+                                  // Eğer prev boşsa (tüm marketler seçili), sadece bu marketi seç
+                                  if (prev.length === 0) {
+                                    return [marketName];
+                                  }
+                                  return prev.includes(marketName) ? prev : [...prev, marketName];
                                 } else {
                                   // İşaret kaldırılıyorsa, listeden çıkar
-                                  return base.filter((m) => m !== marketName);
+                                  // Eğer son market kaldırılıyorsa, boş array döndür (tüm marketler seçili anlamına gelir)
+                                  const filtered = prev.filter((m) => m !== marketName);
+                                  return filtered.length === 0 ? [] : filtered;
                                 }
                               });
                             }}
