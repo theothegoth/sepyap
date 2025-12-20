@@ -418,9 +418,25 @@ export class OptimizationService {
               
               if (allWordsMatch) {
                 candidateForMarket = candidate;
+                this.logger.log(
+                  `[Optimization] Alternative cart: Found valid candidate "${candidate.title}" for query "${item.query}" in market "${marketName}"`,
+                );
                 break;
+              } else {
+                this.logger.log(
+                  `[Optimization] Alternative cart: Rejecting "${candidate.title}" for query "${item.query}" in market "${marketName}" - query words don't match`,
+                );
               }
             }
+          }
+          
+          // If no valid candidate found for query-based item, skip this market
+          if (!candidateForMarket) {
+            this.logger.log(
+              `[Optimization] Alternative cart: No valid candidate found for query "${item.query}" in market "${marketName}" - skipping this market`,
+            );
+            canServeAllItems = false;
+            break;
           }
         } else {
           // For productId-based items, just find first candidate for this market
