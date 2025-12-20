@@ -97,18 +97,35 @@ export class OptimizationService {
 
       // Strategy 2: Use query string to find Product, then get all MarketProducts
       if (candidates.length === 0 && item.query) {
+        // Build base query builder for market filter (apply early if market filter is specified)
+        const buildMarketProductQuery = () => {
+          let queryBuilder = this.marketProductRepo
+            .createQueryBuilder('mp')
+            .leftJoinAndSelect('mp.market', 'market')
+            .leftJoinAndSelect('mp.product', 'product')
+            .andWhere('mp.in_stock = true');
+          
+          // Apply market filter early if specified (more efficient)
+          if (allowedMarkets.length > 0) {
+            const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
+            queryBuilder = queryBuilder.andWhere(
+              'LOWER(TRIM(market.name)) IN (:...allowedMarkets)',
+              { allowedMarkets: normalizedAllowed },
+            );
+          }
+          
+          return queryBuilder;
+        };
+
         // Search for products matching the query
         const products = await this.matchingService.searchProducts(item.query, 5);
 
         if (products.length > 0) {
           // Get all MarketProducts for matched products
           const productIds = products.map((p) => p.id);
-          candidates = await this.marketProductRepo
-            .createQueryBuilder('mp')
-            .leftJoinAndSelect('mp.market', 'market')
-            .leftJoinAndSelect('mp.product', 'product')
-            .where('mp.product_master_id IN (:...productIds)', { productIds })
-            .andWhere('mp.in_stock = true')
+          const queryBuilder = buildMarketProductQuery();
+          candidates = await queryBuilder
+            .andWhere('mp.product_master_id IN (:...productIds)', { productIds })
             .getMany();
 
           this.logger.debug(
@@ -140,11 +157,9 @@ export class OptimizationService {
               return `LOWER(TRIM(mp.title)) ~* '(^|[^a-z0-9])${escapedWord}([^a-z0-9]|$)'`;
             });
             
-            candidates = await this.marketProductRepo
-              .createQueryBuilder('mp')
-              .leftJoinAndSelect('mp.market', 'market')
-              .where(`(${wordConditions.join(' AND ')})`, {})
-              .andWhere('mp.in_stock = true')
+            const queryBuilder = buildMarketProductQuery();
+            candidates = await queryBuilder
+              .andWhere(`(${wordConditions.join(' AND ')})`, {})
               .getMany();
           }
         }
@@ -155,15 +170,8 @@ export class OptimizationService {
         candidates = this.applyBrandFilters(candidates, includeBrands, excludeBrands);
       }
 
-      // Apply market filter (only keep allowed markets if provided)
-      if (allowedMarkets.length > 0) {
-        const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
-        candidates = candidates.filter(
-          (c) =>
-            c.market &&
-            normalizedAllowed.includes(c.market.name.trim().toLowerCase()),
-        );
-      }
+      // Note: Market filter is now applied early in buildMarketProductQuery() for better performance
+      // No need to filter again here
 
       // Track markets that have at least one candidate (for alternatives)
       for (const c of candidates) {
