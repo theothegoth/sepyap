@@ -212,9 +212,13 @@ export class OptimizationService {
         );
         continue;
       }
+      const chosenProduct = candidates[0]; // Take most efficient (best price per unit)
+      this.logger.debug(
+        `[Optimization] Selected product for "${item.query || `Product ID ${item.productId}`}": "${chosenProduct.title}" (${chosenProduct.market?.name}, ${chosenProduct.price} TL)`,
+      );
       chosenItems.push({
         itemKey: key,
-        product: candidates[0], // Take most efficient (best price per unit)
+        product: chosenProduct,
         quantity: item.quantity,
       });
     }
