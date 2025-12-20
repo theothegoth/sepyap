@@ -177,9 +177,33 @@ export class OptimizationService {
             });
             
             const queryBuilder = buildMarketProductQuery();
+            this.logger.log(
+              `[Optimization] Fallback search: Searching for "${item.query}" with market filter: [${allowedMarkets.join(', ')}]`,
+            );
             candidates = await queryBuilder
               .andWhere(`(${wordConditions.join(' AND ')})`, {})
               .getMany();
+            
+            this.logger.log(
+              `[Optimization] Fallback search: Found ${candidates.length} MarketProducts for query "${item.query}"`,
+            );
+            if (candidates.length > 0) {
+              const marketCounts = new Map<string, number>();
+              candidates.forEach(c => {
+                const marketName = c.market?.name || 'Unknown';
+                marketCounts.set(marketName, (marketCounts.get(marketName) || 0) + 1);
+              });
+              const marketSummary = Array.from(marketCounts.entries())
+                .map(([market, count]) => `${market}: ${count}`)
+                .join(', ');
+              this.logger.log(
+                `[Optimization] Fallback search: Markets found: ${marketSummary}`,
+              );
+              const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
+              this.logger.log(
+                `[Optimization] Fallback search: Sample MarketProducts: ${sampleProducts}`,
+              );
+            }
           }
         }
       }
