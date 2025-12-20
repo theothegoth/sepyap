@@ -61,8 +61,6 @@
         "http://localhost/*",
         "http://127.0.0.1/*",
         "http://0.0.0.0/*",
-        "https://grocerymatcher.com/*",
-        "https://www.grocerymatcher.com/*",
         "https://sepyap.com/*",
         "https://www.sepyap.com/*"
       ],
