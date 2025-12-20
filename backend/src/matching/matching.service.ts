@@ -269,6 +269,12 @@ export class MatchingService {
             const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
             const matches = wordRegex.test(normalizedTitle);
+            
+            // Debug log for "Su" product specifically
+            if (normalizedTitle === 'su' || product.canonical_title === 'Su') {
+              this.logger.debug(`[Search] Word match check for "Su": queryWord="${word}", normalizedTitle="${normalizedTitle}", regex="${wordRegex}", matches=${matches}, productTitle="${product.canonical_title}"`);
+            }
+            
             return matches;
           });
         }
