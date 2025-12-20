@@ -263,9 +263,10 @@ export class MatchingService {
         // This prevents "süt" from matching "Pınar Su" (because "sut" is not a word in "pinar su")
         const containsMatch = queryWords.length > 0 && queryWords.every(word => {
           // Check if word appears as a whole word (not as substring of another word)
-          // Use word boundaries: \b or check if it's at start/end or surrounded by spaces
-          const wordRegex = new RegExp(`(^|\\s)${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`, 'i');
-          return wordRegex.test(normalizedTitle) || normalizedTitle.includes(word);
+          // Use word boundaries: word must be at start/end or surrounded by spaces/non-word chars
+          const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
+          return wordRegex.test(normalizedTitle);
         });
         
         return { product, similarity, containsMatch };
@@ -282,9 +283,19 @@ export class MatchingService {
         this.logger.debug(`[Search] No matches found with similarity > 0.1`);
       }
 
+    // For single-word queries, require word-based match (prevents "süt" matching "Pınar Su")
+    const isSingleWordQuery = queryWords.length === 1;
+    
     // Prioritize exact/contains matches, then fuzzy matches
     const exactMatches = scoredProducts
-      .filter(item => item.containsMatch || item.similarity > 0.85) // High similarity (85%) or word-based contains match
+      .filter(item => {
+        // If single word query, must have containsMatch (word-based)
+        if (isSingleWordQuery && !item.containsMatch) {
+          return false;
+        }
+        // Otherwise, allow high similarity or word-based contains match
+        return item.containsMatch || item.similarity > 0.85;
+      })
       .sort((a, b) => {
         // Prioritize contains matches, then by similarity
         if (a.containsMatch && !b.containsMatch) return -1;
@@ -296,7 +307,13 @@ export class MatchingService {
     const exactMatchIds = new Set(exactMatches.map(p => p.id));
     const fuzzyMatches = scoredProducts
       .filter(item => !exactMatchIds.has(item.product.id)) // Don't duplicate exact matches
-      .filter(item => item.similarity > 0.5) // Minimum 50% similarity (increased from 30%)
+      .filter(item => {
+        // For single word queries, require containsMatch even for fuzzy matches
+        if (isSingleWordQuery && !item.containsMatch) {
+          return false;
+        }
+        return item.similarity > 0.5; // Minimum 50% similarity
+      })
       .sort((a, b) => b.similarity - a.similarity)
       .map(item => item.product);
 
@@ -357,16 +374,28 @@ export class MatchingService {
       // Check if all query words are contained in normalized title (word-based matching)
       const containsMatch = queryWords.length > 0 && queryWords.every(word => {
         // Check if word appears as a whole word (not as substring of another word)
-        const wordRegex = new RegExp(`(^|\\s)${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`, 'i');
-        return wordRegex.test(normalizedTitle) || normalizedTitle.includes(word);
+        // Use word boundaries: word must be at start/end or surrounded by spaces/non-word chars
+        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
+        return wordRegex.test(normalizedTitle);
       });
       
       return { marketProduct: mp, similarity, containsMatch };
     });
     
+    // For single-word queries, require word-based match (prevents "süt" matching "Pınar Su")
+    const isSingleWordQuery = queryWords.length === 1;
+    
     // Get top matches
     const topMarketProducts = scoredMarketProducts
-      .filter(item => item.containsMatch || item.similarity > 0.5) // Increased threshold from 0.3 to 0.5
+      .filter(item => {
+        // If single word query, must have containsMatch (word-based)
+        if (isSingleWordQuery && !item.containsMatch) {
+          return false;
+        }
+        // Otherwise, allow containsMatch or high similarity
+        return item.containsMatch || item.similarity > 0.5;
+      })
       .sort((a, b) => {
         if (a.containsMatch && !b.containsMatch) return -1;
         if (!a.containsMatch && b.containsMatch) return 1;
