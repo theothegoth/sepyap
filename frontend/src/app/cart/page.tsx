@@ -162,6 +162,56 @@ function CartContent() {
         excludedBrands.length > 0 ? excludedBrands : undefined,
         allowedMarkets.length > 0 ? allowedMarkets : undefined,
       );
+      
+      // Filter out alternative carts that contain items not matching query words
+      // This is a workaround until backend query validation is fixed
+      if (res.data.alternatives && cart.length > 0) {
+        const filteredAlternatives = res.data.alternatives.filter((alt: any) => {
+          if (!alt.breakdown || alt.breakdown.length === 0) return false;
+          
+          // Check each item in the alternative cart against corresponding cart item
+          for (let i = 0; i < cart.length; i++) {
+            const cartItem = cart[i];
+            if (!cartItem.query) continue; // Skip if no query (productId-based)
+            
+            // Find the corresponding item in the alternative cart
+            let foundMatchingItem = false;
+            for (const basket of alt.breakdown) {
+              if (!basket.items || basket.items.length === 0) continue;
+              
+              // Check if any item in this basket matches the cart item query
+              for (const item of basket.items) {
+                const queryWords = cartItem.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+                const itemTitle = item.name.toLowerCase();
+                
+                // Check if all query words appear as whole words in the item title
+                const allWordsMatch = queryWords.every(word => {
+                  const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                  const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
+                  return wordRegex.test(itemTitle);
+                });
+                
+                if (allWordsMatch) {
+                  foundMatchingItem = true;
+                  break;
+                }
+              }
+              
+              if (foundMatchingItem) break;
+            }
+            
+            // If no matching item found for this cart item, reject this alternative cart
+            if (!foundMatchingItem) {
+              return false;
+            }
+          }
+          
+          return true; // Keep this alternative cart
+        });
+        
+        res.data.alternatives = filteredAlternatives;
+      }
+      
       setResult(res.data);
     } catch (e) {
       alert('Optimization failed. Ensure backend is running.');
