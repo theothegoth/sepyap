@@ -345,7 +345,8 @@ export class MatchingService {
 
       // Return exact matches first, then fuzzy matches
       results = [...exactMatches, ...fuzzyMatches].slice(0, limit);
-      this.logger.debug(`[Search] Found ${results.length} results from products_master`);
+      this.logger.debug(`[Search] Found ${results.length} results from products_master: ${results.map(r => `"${r.canonical_title}"`).join(', ')}`);
+      this.logger.debug(`[Search] Exact matches: ${exactMatches.length}, Fuzzy matches: ${fuzzyMatches.length}`);
       
       // If we didn't find enough results (or found none), also search market_products as fallback
       if (results.length === 0 || results.length < limit) {
