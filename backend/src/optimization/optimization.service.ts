@@ -379,14 +379,25 @@ export class OptimizationService {
 
     // Alternatif sepetler: tek marketten alışveriş yapılabilecek sepetler
     const alternativeCarts: AlternativeCart[] = [];
+    
+    this.logger.log(
+      `[Optimization] Starting alternative carts algorithm. allMarkets: [${Array.from(allMarkets).join(', ')}], allowedMarkets: [${allowedMarkets.join(', ')}]`,
+    );
 
     for (const marketName of allMarkets) {
       if (allowedMarkets.length > 0) {
         const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
         if (!normalizedAllowed.includes(marketName.trim().toLowerCase())) {
+          this.logger.log(
+            `[Optimization] Alternative cart: Skipping market "${marketName}" - not in allowedMarkets`,
+          );
           continue;
         }
       }
+      
+      this.logger.log(
+        `[Optimization] Alternative cart: Processing market "${marketName}"`,
+      );
 
       const selectionsForMarket: {
         itemKey: string | number;
