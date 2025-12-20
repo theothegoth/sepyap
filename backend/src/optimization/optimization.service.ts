@@ -212,6 +212,21 @@ export class OptimizationService {
         );
         continue;
       }
+      
+      // Debug: Log candidates for query-based items
+      if (item.query && item.query.trim()) {
+        const marketCounts = new Map<string, number>();
+        candidates.forEach(c => {
+          const marketName = c.market?.name || 'Unknown';
+          marketCounts.set(marketName, (marketCounts.get(marketName) || 0) + 1);
+        });
+        const marketSummary = Array.from(marketCounts.entries())
+          .map(([market, count]) => `${market}: ${count}`)
+          .join(', ');
+        this.logger.debug(
+          `[Optimization] Found ${candidates.length} candidates for query "${item.query}". Markets: ${marketSummary}`,
+        );
+      }
       // If query string provided, ensure selected product title contains the query word
       // This prevents "süt" from selecting "Pınar Su" (because "süt" is not in "Pınar Su")
       let chosenProduct = candidates[0]; // Take most efficient (best price per unit)
@@ -220,20 +235,29 @@ export class OptimizationService {
         const queryWords = item.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
         const productTitle = chosenProduct.title.toLowerCase();
         
+        this.logger.debug(
+          `[Optimization] Validating query "${item.query}" against "${chosenProduct.title}" (${chosenProduct.market?.name})`,
+        );
+        
         // Check if all query words appear as whole words in the product title
         const allWordsMatch = queryWords.every(word => {
           // Use word boundary regex: word must be at start/end or surrounded by non-word chars
           const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
-          return wordRegex.test(productTitle);
+          const matches = wordRegex.test(productTitle);
+          this.logger.debug(
+            `[Optimization] Query word "${word}" ${matches ? 'matches' : 'does not match'} in "${productTitle}"`,
+          );
+          return matches;
         });
         
         // If query words don't match, try next candidates
         if (!allWordsMatch) {
           this.logger.debug(
-            `[Optimization] Rejecting "${chosenProduct.title}" - query "${item.query}" words don't match. Trying next candidates...`,
+            `[Optimization] Rejecting "${chosenProduct.title}" - query "${item.query}" words don't match. Trying next ${candidates.length - 1} candidates...`,
           );
           
+          let foundMatch = false;
           for (let i = 1; i < candidates.length; i++) {
             const candidate = candidates[i];
             const candidateTitle = candidate.title.toLowerCase();
@@ -245,27 +269,25 @@ export class OptimizationService {
             
             if (candidateWordsMatch) {
               chosenProduct = candidate;
+              foundMatch = true;
               this.logger.debug(
-                `[Optimization] Selected alternative candidate "${chosenProduct.title}" - query words match`,
+                `[Optimization] Selected alternative candidate "${chosenProduct.title}" (${chosenProduct.market?.name}) - query words match`,
               );
               break;
             }
           }
           
           // If no candidate matches, skip this item (don't use first candidate)
-          const finalTitle = chosenProduct.title.toLowerCase();
-          const finalWordsMatch = queryWords.every(word => {
-            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
-            return wordRegex.test(finalTitle);
-          });
-          
-          if (!finalWordsMatch) {
+          if (!foundMatch) {
             this.logger.warn(
-              `[Optimization] No candidate matches query "${item.query}" - skipping item. First candidate was "${chosenProduct.title}" but it doesn't contain query words.`,
+              `[Optimization] No candidate matches query "${item.query}" - skipping item. Checked ${candidates.length} candidates. Sample: ${candidates.slice(0, 3).map(c => `"${c.title}" (${c.market?.name})`).join(', ')}`,
             );
             continue; // Skip this item instead of using wrong product
           }
+        } else {
+          this.logger.debug(
+            `[Optimization] Query "${item.query}" matches "${chosenProduct.title}" (${chosenProduct.market?.name})`,
+          );
         }
       }
       
