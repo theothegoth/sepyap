@@ -212,7 +212,62 @@ export class OptimizationService {
         );
         continue;
       }
-      const chosenProduct = candidates[0]; // Take most efficient (best price per unit)
+      // If query string provided, ensure selected product title contains the query word
+      // This prevents "süt" from selecting "Pınar Su" (because "süt" is not in "Pınar Su")
+      let chosenProduct = candidates[0]; // Take most efficient (best price per unit)
+      
+      if (item.query && item.query.trim()) {
+        const queryWords = item.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+        const productTitle = chosenProduct.title.toLowerCase();
+        
+        // Check if all query words appear as whole words in the product title
+        const allWordsMatch = queryWords.every(word => {
+          // Use word boundary regex: word must be at start/end or surrounded by non-word chars
+          const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
+          return wordRegex.test(productTitle);
+        });
+        
+        // If query words don't match, try next candidates
+        if (!allWordsMatch) {
+          this.logger.debug(
+            `[Optimization] Rejecting "${chosenProduct.title}" - query "${item.query}" words don't match. Trying next candidates...`,
+          );
+          
+          for (let i = 1; i < candidates.length; i++) {
+            const candidate = candidates[i];
+            const candidateTitle = candidate.title.toLowerCase();
+            const candidateWordsMatch = queryWords.every(word => {
+              const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
+              return wordRegex.test(candidateTitle);
+            });
+            
+            if (candidateWordsMatch) {
+              chosenProduct = candidate;
+              this.logger.debug(
+                `[Optimization] Selected alternative candidate "${chosenProduct.title}" - query words match`,
+              );
+              break;
+            }
+          }
+          
+          // If no candidate matches, log warning but use first candidate anyway
+          const finalTitle = chosenProduct.title.toLowerCase();
+          const finalWordsMatch = queryWords.every(word => {
+            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
+            return wordRegex.test(finalTitle);
+          });
+          
+          if (!finalWordsMatch) {
+            this.logger.warn(
+              `[Optimization] No candidate matches query "${item.query}" - using first candidate "${chosenProduct.title}" anyway`,
+            );
+          }
+        }
+      }
+      
       this.logger.debug(
         `[Optimization] Selected product for "${item.query || `Product ID ${item.productId}`}": "${chosenProduct.title}" (${chosenProduct.market?.name}, ${chosenProduct.price} TL)`,
       );
