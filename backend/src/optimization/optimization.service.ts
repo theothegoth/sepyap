@@ -74,6 +74,9 @@ export class OptimizationService {
     excludeBrands: string[] = [],
     allowedMarkets: string[] = [],
   ): Promise<OptimizedResult> {
+    this.logger.debug(
+      `[Optimization] findCheapestCart called with ${cartItems.length} items, allowedMarkets: [${allowedMarkets.join(', ')}]`,
+    );
     const candidatesMap = new Map<string | number, MarketProduct[]>();
     const allMarkets = new Set<string>();
 

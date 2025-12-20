@@ -17,6 +17,9 @@ export class OptimizationController {
     const includeBrands = payload.includeBrands || [];
     const excludeBrands = payload.excludeBrands || [];
     const allowedMarkets = payload.allowedMarkets || [];
+    this.logger.debug(
+      `[OptimizationController] Received allowedMarkets: [${allowedMarkets.join(', ')}] (length: ${allowedMarkets.length})`,
+    );
 
     const result = await this.optimizationService.findCheapestCart(
       payload.items,
