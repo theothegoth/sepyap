@@ -114,18 +114,39 @@ export class OptimizationService {
           this.logger.debug(
             `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}"`,
           );
+          if (candidates.length > 0) {
+            const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
+            this.logger.debug(
+              `[Optimization] Sample MarketProducts: ${sampleProducts}`,
+            );
+          }
         }
 
-        // Fallback: Direct title search (backward compatibility) - case-insensitive
+        // Fallback: Direct title search with word-based matching (prevents "süt" matching "Pınar Su")
         if (candidates.length === 0) {
-          candidates = await this.marketProductRepo
-            .createQueryBuilder('mp')
-            .leftJoinAndSelect('mp.market', 'market')
-            .where('LOWER(TRIM(mp.title)) LIKE LOWER(:query)', {
-              query: `%${item.query.trim()}%`,
-            })
-            .andWhere('mp.in_stock = true')
-            .getMany();
+          const normalizedQuery = item.query.trim().toLowerCase();
+          const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+          
+          // Use word-based search: each query word must appear as a whole word in the title
+          // This prevents "süt" from matching "Pınar Su" (because "sut" is not a word in "pinar su")
+          if (queryWords.length > 0) {
+            // For single word queries, use word boundary matching
+            // For multi-word queries, all words must appear
+            const wordConditions = queryWords.map((word) => {
+              // Escape special regex characters for PostgreSQL
+              const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // Match word boundaries: word must be at start/end or surrounded by spaces/punctuation
+              // PostgreSQL uses \y for word boundaries, but we'll use a simpler approach
+              return `LOWER(TRIM(mp.title)) ~* '(^|[^a-z0-9])${escapedWord}([^a-z0-9]|$)'`;
+            });
+            
+            candidates = await this.marketProductRepo
+              .createQueryBuilder('mp')
+              .leftJoinAndSelect('mp.market', 'market')
+              .where(`(${wordConditions.join(' AND ')})`, {})
+              .andWhere('mp.in_stock = true')
+              .getMany();
+          }
         }
       }
 
