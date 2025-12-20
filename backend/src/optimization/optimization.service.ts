@@ -108,6 +108,9 @@ export class OptimizationService {
           // Apply market filter early if specified (more efficient)
           if (allowedMarkets.length > 0) {
             const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
+            this.logger.debug(
+              `[Optimization] Applying market filter: ${normalizedAllowed.join(', ')}`,
+            );
             queryBuilder = queryBuilder.andWhere(
               'LOWER(TRIM(market.name)) IN (:...allowedMarkets)',
               { allowedMarkets: normalizedAllowed },
@@ -117,29 +120,42 @@ export class OptimizationService {
           return queryBuilder;
         };
 
-        // Search for products matching the query
-        const products = await this.matchingService.searchProducts(item.query, 5);
+        // If market filter is applied, skip Product search and go directly to fallback search
+        // This is because matchingService.searchProducts() doesn't know about market filter
+        // and might return products that don't exist in the selected market
+        if (allowedMarkets.length === 0) {
+          // Search for products matching the query (only if no market filter)
+          const products = await this.matchingService.searchProducts(item.query, 5);
 
-        if (products.length > 0) {
-          // Get all MarketProducts for matched products
-          const productIds = products.map((p) => p.id);
-          const queryBuilder = buildMarketProductQuery();
-          candidates = await queryBuilder
-            .andWhere('mp.product_master_id IN (:...productIds)', { productIds })
-            .getMany();
+          if (products.length > 0) {
+            // Get all MarketProducts for matched products
+            const productIds = products.map((p) => p.id);
+            const queryBuilder = buildMarketProductQuery();
+            candidates = await queryBuilder
+              .andWhere('mp.product_master_id IN (:...productIds)', { productIds })
+              .getMany();
 
-          this.logger.debug(
-            `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}"`,
-          );
-          if (candidates.length > 0) {
-            const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
             this.logger.debug(
-              `[Optimization] Sample MarketProducts: ${sampleProducts}`,
+              `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}" via Product search`,
             );
+            if (candidates.length > 0) {
+              const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
+              this.logger.debug(
+                `[Optimization] Sample MarketProducts: ${sampleProducts}`,
+              );
+            }
           }
+        } else {
+          this.logger.debug(
+            `[Optimization] Market filter applied, skipping Product search and using direct MarketProduct search`,
+          );
         }
 
         // Fallback: Direct title search with word-based matching (prevents "süt" matching "Pınar Su")
+        // If market filter is applied and no candidates found from Product search, use fallback
+        // This ensures that if a specific market is selected, we search directly in that market's products
+        // matchingService.searchProducts() doesn't know about market filter, so it might return products
+        // that don't exist in the selected market
         if (candidates.length === 0) {
           const normalizedQuery = item.query.trim().toLowerCase();
           const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
