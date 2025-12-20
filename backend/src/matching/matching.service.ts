@@ -261,13 +261,17 @@ export class MatchingService {
         
         // Check if all query words are contained in normalized title (word-based matching)
         // This prevents "süt" from matching "Pınar Su" (because "sut" is not a word in "pinar su")
-        const containsMatch = queryWords.length > 0 && queryWords.every(word => {
-          // Check if word appears as a whole word (not as substring of another word)
-          // Use word boundaries: word must be at start/end or surrounded by spaces/non-word chars
-          const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
-          return wordRegex.test(normalizedTitle);
-        });
+        let containsMatch = false;
+        if (queryWords.length > 0) {
+          containsMatch = queryWords.every(word => {
+            // Check if word appears as a whole word (not as substring of another word)
+            // Use word boundaries: word must be at start/end or surrounded by spaces/non-word chars
+            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
+            const matches = wordRegex.test(normalizedTitle);
+            return matches;
+          });
+        }
         
         return { product, similarity, containsMatch };
       });
@@ -278,23 +282,29 @@ export class MatchingService {
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, 5);
       if (topMatches.length > 0) {
-        this.logger.debug(`[Search] Top matches: ${topMatches.map(m => `"${m.product.canonical_title}" (${(m.similarity * 100).toFixed(1)}%)`).join(', ')}`);
+        this.logger.debug(`[Search] Top matches: ${topMatches.map(m => `"${m.product.canonical_title}" (${(m.similarity * 100).toFixed(1)}%, containsMatch: ${m.containsMatch})`).join(', ')}`);
       } else {
         this.logger.debug(`[Search] No matches found with similarity > 0.1`);
       }
 
     // For single-word queries, require word-based match (prevents "süt" matching "Pınar Su")
     const isSingleWordQuery = queryWords.length === 1;
+    this.logger.debug(`[Search] Single word query: ${isSingleWordQuery}, query words: ${JSON.stringify(queryWords)}`);
     
     // Prioritize exact/contains matches, then fuzzy matches
     const exactMatches = scoredProducts
       .filter(item => {
         // If single word query, must have containsMatch (word-based)
         if (isSingleWordQuery && !item.containsMatch) {
+          this.logger.debug(`[Search] Rejecting "${item.product.canonical_title}" (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: false) - single word query requires word match`);
           return false;
         }
         // Otherwise, allow high similarity or word-based contains match
-        return item.containsMatch || item.similarity > 0.85;
+        const accepted = item.containsMatch || item.similarity > 0.85;
+        if (accepted) {
+          this.logger.debug(`[Search] Accepting "${item.product.canonical_title}" as exact match (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: ${item.containsMatch})`);
+        }
+        return accepted;
       })
       .sort((a, b) => {
         // Prioritize contains matches, then by similarity
@@ -310,9 +320,14 @@ export class MatchingService {
       .filter(item => {
         // For single word queries, require containsMatch even for fuzzy matches
         if (isSingleWordQuery && !item.containsMatch) {
+          this.logger.debug(`[Search] Rejecting "${item.product.canonical_title}" from fuzzy matches (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: false) - single word query requires word match`);
           return false;
         }
-        return item.similarity > 0.5; // Minimum 50% similarity
+        const accepted = item.similarity > 0.5; // Minimum 50% similarity
+        if (accepted) {
+          this.logger.debug(`[Search] Accepting "${item.product.canonical_title}" as fuzzy match (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: ${item.containsMatch})`);
+        }
+        return accepted;
       })
       .sort((a, b) => b.similarity - a.similarity)
       .map(item => item.product);
