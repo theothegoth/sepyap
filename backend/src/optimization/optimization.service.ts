@@ -111,12 +111,16 @@ export class OptimizationService {
           // Apply market filter early if specified (more efficient)
           if (allowedMarkets.length > 0) {
             const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
-            this.logger.debug(
-              `[Optimization] Applying market filter: ${normalizedAllowed.join(', ')}`,
+            this.logger.log(
+              `[Optimization] buildMarketProductQuery: Applying market filter: [${normalizedAllowed.join(', ')}]`,
             );
             queryBuilder = queryBuilder.andWhere(
               'LOWER(TRIM(market.name)) IN (:...allowedMarkets)',
               { allowedMarkets: normalizedAllowed },
+            );
+          } else {
+            this.logger.log(
+              `[Optimization] buildMarketProductQuery: No market filter (allowedMarkets.length = ${allowedMarkets.length})`,
             );
           }
           
