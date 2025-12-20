@@ -575,10 +575,12 @@ export class OptimizationService {
       order: { name: 'ASC' },
     });
 
-    // Filter out "Sok" (should be "Şok" with Turkish character)
-    // This prevents duplicate "Sok" and "Şok" in the market filter
+    // Filter out duplicate market names
+    // - "Sok" (should be "Şok" with Turkish character)
+    // - "Macrocenter" (should be "Macro Center" with space)
+    // This prevents duplicate markets in the market filter
     const result = markets
-      .filter((m) => m.name !== 'Sok') // Remove "Sok" if it exists
+      .filter((m) => m.name !== 'Sok' && m.name !== 'Macrocenter') // Remove duplicates
       .map((m) => ({
         id: m.id,
         name: m.name,
