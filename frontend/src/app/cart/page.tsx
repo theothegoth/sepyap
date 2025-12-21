@@ -708,6 +708,12 @@ function CartContent() {
                                 ? 'Bu markette bazı ürünler bulunmuyor. Eksik ürünleri başka yerden almanız gerekebilir.'
                                 : 'Bu sepet, en ucuz sepete alternatif olarak farklı market tercihleri sunar (ör. tek marketten alışveriş).'}
                             </div>
+                            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                              <div className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1">
+                                <span>ℹ️</span>
+                                <span>Ürün linkleri son güncelleme tarihine aittir. Fiyat ve stok durumu değişmiş olabilir.</span>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
