@@ -100,6 +100,7 @@ export const api = {
     limit: number = 20,
     includeBrands?: string[],
     excludeBrands?: string[],
+    strict?: boolean,
   ) => {
     const params: any = { q: query };
     if (limit) params.limit = limit;
@@ -107,10 +108,11 @@ export const api = {
       params.includeBrands = includeBrands.join(',');
     if (excludeBrands && excludeBrands.length > 0)
       params.excludeBrands = excludeBrands.join(',');
+    if (strict !== undefined) params.strict = strict ? 'true' : 'false';
 
     const cacheKey = `search:${query}:${limit}:${includeBrands?.join(',')}:${excludeBrands?.join(
       ',',
-    )}`;
+    )}:${strict}`;
 
     return apiCache.get(
       cacheKey,
