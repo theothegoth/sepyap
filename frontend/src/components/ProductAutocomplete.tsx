@@ -38,7 +38,7 @@ export default function ProductAutocomplete({ onSelect, onEnter, placeholder = "
 
             setLoading(true);
             try {
-                const response = await api.searchProducts(debouncedQuery, 8);
+                const response = await api.searchProducts(debouncedQuery, 50);
                 setSuggestions(response.data.products || []);
                 setIsOpen(true);
             } catch (error) {
