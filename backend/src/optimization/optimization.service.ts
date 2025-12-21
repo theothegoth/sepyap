@@ -162,6 +162,29 @@ export class OptimizationService {
           this.logger.debug(
             `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}" via Product search (Markets: ${allowedMarkets.join(', ') || 'All'})`,
           );
+
+          // Validate candidates immediately. If we found "Pınar Su" for "Süt" (bad link), we must reject it here.
+          // If we reject all, 'candidates' becomes empty, allowing the fallback search to run.
+          if (candidates.length > 0 && item.query && item.query.trim()) {
+            const normalizedQuery = this.normalizeString(item.query);
+            const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+
+            const originalCount = candidates.length;
+            candidates = candidates.filter(candidate => {
+              const productTitle = this.normalizeString(candidate.title);
+              // Simple includes check for all words
+              const allMatch = queryWords.every(word => productTitle.includes(word));
+              if (!allMatch) {
+                this.logger.debug(`[Optimization] Early Reject: "${candidate.title}" does not match query "${item.query}"`);
+              }
+              return allMatch;
+            });
+
+            if (candidates.length !== originalCount) {
+              this.logger.debug(`[Optimization] Filtered candidates from ${originalCount} to ${candidates.length} based on title match`);
+            }
+          }
+
           if (candidates.length > 0) {
             const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
             this.logger.debug(
