@@ -651,6 +651,11 @@ function CartContent() {
                                 {alt.marketCount === 1
                                   ? `${alt.breakdown[0]?.marketName} marketinden tek sepet`
                                   : `${alt.marketCount} market kombinasyonu`}
+                                {(alt as any).matchedItems && (alt as any).totalItems && (alt as any).matchedItems < (alt as any).totalItems && (
+                                  <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">
+                                    ({(alt as any).matchedItems}/{(alt as any).totalItems} ürün)
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm font-bold text-green-700 dark:text-green-400">
                                 {alt.totalPrice.toFixed(2)} TL
@@ -667,9 +672,20 @@ function CartContent() {
                                 – {basket.subtotal.toFixed(2)} TL
                               </div>
                             ))}
+                            {(alt as any).missingItems && (alt as any).missingItems.length > 0 && (
+                              <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
+                                <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-1">
+                                  Eksik ürünler:
+                                </div>
+                                <div className="text-xs text-orange-600 dark:text-orange-300">
+                                  {(alt as any).missingItems.join(', ')}
+                                </div>
+                              </div>
+                            )}
                             <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">
-                              Bu sepet, en ucuz sepete alternatif olarak farklı market
-                              tercihleri sunar (ör. tek marketten alışveriş).
+                              {(alt as any).matchedItems && (alt as any).totalItems && (alt as any).matchedItems < (alt as any).totalItems
+                                ? 'Bu markette bazı ürünler bulunmuyor. Eksik ürünleri başka yerden almanız gerekebilir.'
+                                : 'Bu sepet, en ucuz sepete alternatif olarak farklı market tercihleri sunar (ör. tek marketten alışveriş).'}
                             </div>
                           </div>
                         ))}

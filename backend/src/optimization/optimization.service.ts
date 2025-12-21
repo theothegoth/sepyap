@@ -31,6 +31,9 @@ export interface AlternativeCart {
   totalPrice: number;
   breakdown: BasketBreakdown[];
   marketCount: number;
+  matchedItems?: number; // Number of items found in this cart
+  totalItems?: number; // Total items requested
+  missingItems?: string[]; // Names of items not found
 }
 
 export interface OptimizedResult {
@@ -461,7 +464,7 @@ export class OptimizationService {
         product: MarketProduct;
         quantity: number;
       }[] = [];
-      let canServeAllItems = true;
+      const missingItems: string[] = [];
 
       for (const item of cartItems) {
         const key = item.productId || item.query || 'unknown';
@@ -495,13 +498,12 @@ export class OptimizationService {
             }
           }
 
-          // If no valid candidate found for query-based item, skip this market
+          // If no valid candidate found, track as missing but continue
           if (!candidateForMarket) {
             this.logger.log(
-              `[Optimization] Alternative cart: No valid candidate found for query "${item.query}" in market "${marketName}" - skipping this market`,
+              `[Optimization] Alternative cart: No valid candidate found for query "${item.query}" in market "${marketName}" - marking as missing`,
             );
-            canServeAllItems = false;
-            break;
+            missingItems.push(item.query);
           }
         } else {
           // For productId-based items, just find first candidate for this market
@@ -511,17 +513,22 @@ export class OptimizationService {
         }
 
         if (!candidateForMarket) {
-          canServeAllItems = false;
-          break;
+          // Track missing item
+          const itemName = item.query || item.productId?.toString() || 'Unknown';
+          if (!missingItems.includes(itemName)) {
+            missingItems.push(itemName);
+          }
+        } else {
+          selectionsForMarket.push({
+            itemKey: key,
+            product: candidateForMarket,
+            quantity: item.quantity,
+          });
         }
-        selectionsForMarket.push({
-          itemKey: key,
-          product: candidateForMarket,
-          quantity: item.quantity,
-        });
       }
 
-      if (!canServeAllItems || selectionsForMarket.length === 0) {
+      // Skip markets with no items found
+      if (selectionsForMarket.length === 0) {
         continue;
       }
 
@@ -557,6 +564,9 @@ export class OptimizationService {
         totalPrice: altBasket.total!,
         breakdown: [altBasket],
         marketCount: 1,
+        matchedItems: selectionsForMarket.length,
+        totalItems: cartItems.length,
+        missingItems: missingItems.length > 0 ? missingItems : undefined,
       });
     }
 
