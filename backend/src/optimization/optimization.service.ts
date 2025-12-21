@@ -61,19 +61,11 @@ export class OptimizationService {
 
   private normalizeString(str: string): string {
     if (!str) return '';
-    let normalized = str
-      .replace(/İ/g, 'i')
-      .replace(/I/g, 'ı')
-      .toLowerCase()
-      .trim();
-    normalized = normalized
-      .replace(/ı/g, 'i') // Normalize turkish i/ı for easier matching
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ş/g, 's')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c');
-    return normalized;
+    // Strict normalization: only handle case conversion, preserving Turkish characters.
+    // This allows distinguishing "Süt" from "Şut".
+    // "süt" -> "süt"
+    // "şut" -> "şut"
+    return str.toLocaleLowerCase('tr-TR').trim();
   }
 
   /**
