@@ -249,7 +249,7 @@ function CartContent() {
             {/* Left: Cart Builder */}
             <div className="card">
               <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                Alışveriş Listeniz
+                Alışveriş Listeniz <span className="text-xs text-gray-400 font-normal">(v1.1)</span>
               </h2>
               <div className="mb-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -755,10 +755,10 @@ function CartContent() {
                                 </div>
                                 <div
                                   className={`text-sm font-medium ${isRecentlyUpdated
-                                      ? 'text-blue-600 dark:text-blue-400'
-                                      : isStale
-                                        ? 'text-orange-500 dark:text-orange-400'
-                                        : 'text-gray-500 dark:text-gray-400'
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : isStale
+                                      ? 'text-orange-500 dark:text-orange-400'
+                                      : 'text-gray-500 dark:text-gray-400'
                                     }`}
                                 >
                                   {lastUpdated.toLocaleTimeString()}
