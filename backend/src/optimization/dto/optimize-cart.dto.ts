@@ -10,6 +10,10 @@ export class CartItemDto {
   @IsNumber()
   productId?: number;
 
+  @IsOptional()
+  @IsString()
+  productTitle?: string;
+
   @IsNotEmpty()
   @IsNumber()
   @Min(1)
