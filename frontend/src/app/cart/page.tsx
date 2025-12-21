@@ -668,8 +668,21 @@ function CartContent() {
                                 </div>
                                 <div className="ml-2 space-y-1">
                                   {basket.items.map((item: any, itemIdx: number) => (
-                                    <div key={itemIdx} className="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
-                                      <span>{item.quantity}x {item.name}</span>
+                                    <div key={itemIdx} className="text-xs text-gray-600 dark:text-gray-400 flex justify-between items-center gap-2">
+                                      <span className="flex items-center gap-1">
+                                        {item.quantity}x {item.name}
+                                        {item.product?.url && (
+                                          <a
+                                            href={item.product.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                            title="Ürün sayfasına git"
+                                          >
+                                            🔗
+                                          </a>
+                                        )}
+                                      </span>
                                       <span className="font-mono">{item.total.toFixed(2)} TL</span>
                                     </div>
                                   ))}
