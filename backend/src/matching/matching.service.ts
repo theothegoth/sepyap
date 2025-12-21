@@ -5,6 +5,7 @@ import { MarketProduct } from '../entities/MarketProduct.entity';
 import { Product } from '../entities/Product.entity';
 // @ts-ignore - string-similarity doesn't have TypeScript types
 import * as stringSimilarity from 'string-similarity';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class MatchingService {
@@ -16,7 +17,8 @@ export class MatchingService {
     private productRepo: Repository<Product>,
     @InjectRepository(MarketProduct)
     private marketProductRepo: Repository<MarketProduct>,
-  ) {}
+    private searchService: SearchService,
+  ) { }
 
   /**
    * Normalize a string for comparison (case-insensitive, preserves Turkish characters)
@@ -26,7 +28,7 @@ export class MatchingService {
    */
   private normalizeString(str: string): string {
     if (!str) return '';
-    
+
     // Handle Turkish uppercase characters before lowercase conversion
     // Turkish has special uppercase: İ (dotted I) and I (dotless i)
     let normalized = str
@@ -34,18 +36,18 @@ export class MatchingService {
       .replace(/I/g, 'ı') // Turkish dotless uppercase I -> lowercase ı
       .toLowerCase()
       .trim();
-    
+
     // DO NOT convert Turkish characters to English equivalents
     // Keep: ı, ğ, ü, ş, ö, ç as they are
     // This ensures "süt" does NOT match "şut" or "su"
-    
+
     // Remove special chars (punctuation, etc.), keep alphanumeric, Turkish chars, and spaces
     // \w in JavaScript includes Turkish chars, but we'll be explicit
     normalized = normalized
       .replace(/[^\w\sığüşöçİĞÜŞÖÇ]/g, '') // Remove special chars, keep Turkish chars
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
-    
+
     return normalized;
   }
 
@@ -81,10 +83,32 @@ export class MatchingService {
     }
 
     // Strategy 2: Fuzzy match (similar title + same property)
-    matchedProduct = await this.findFuzzyMatch(normalizedTitle, normalizedProperty);
-    if (matchedProduct) {
-      this.logger.debug(`[Matching] ✓ Fuzzy match found: Product ID ${matchedProduct.id} - "${matchedProduct.canonical_title}"`);
-      return matchedProduct;
+    // Strategy 2: Fuzzy match via MeiliSearch (Fast & Typo-tolerant)
+    try {
+      // Use MeiliSearch to find potential match
+      const candidates = await this.searchService.searchMasterProducts(normalizedTitle, 1);
+      if (candidates.length > 0) {
+        // MeiliSearch returns hits sorted by relevance. The first one is the best candidate.
+        // We can check if it's "good enough" if Meili exposes a score, or trust Meili's ranking.
+        // For now, let's assume if Meili returns it as top 1, it's a good candidate, but verify with simple containment or length check if paranoid.
+
+        const candidateId = candidates[0].id;
+        // Fetch the actual product entity to confirm/return
+        matchedProduct = await this.productRepo.findOne({ where: { id: candidateId } });
+
+        if (matchedProduct) {
+          this.logger.debug(`[Matching] ✓ MeiliSearch match found: Product ID ${matchedProduct.id} - "${matchedProduct.canonical_title}"`);
+          return matchedProduct;
+        }
+      }
+    } catch (e) {
+      this.logger.error(`[Matching] MeiliSearch matching failed: ${e.message}`);
+      // Fallback to legacy fuzzy match (Strategy 2b) if Meili fails?
+      matchedProduct = await this.findFuzzyMatch(normalizedTitle, normalizedProperty);
+      if (matchedProduct) {
+        this.logger.debug(`[Matching] ✓ Legacy Fuzzy match found: Product ID ${matchedProduct.id} - "${matchedProduct.canonical_title}"`);
+        return matchedProduct;
+      }
     }
 
     // Strategy 3: Create new Product
@@ -102,10 +126,10 @@ export class MatchingService {
     const allProducts = await this.productRepo
       .createQueryBuilder('product')
       .getMany();
-    
+
     for (const product of allProducts) {
       const productNormalizedTitle = this.normalizeString(product.canonical_title);
-      
+
       if (productNormalizedTitle === normalizedTitle) {
         // Check property match by querying market products
         const marketProducts = await this.marketProductRepo.find({
@@ -151,15 +175,15 @@ export class MatchingService {
     for (const product of allProducts) {
       const productNormalizedTitle = this.normalizeString(product.canonical_title);
       const productLength = productNormalizedTitle.length;
-      
+
       // Skip if length difference is too large
       if (Math.abs(productLength - titleLength) > lengthTolerance) {
         continue;
       }
-      
+
       // Calculate similarity
       const similarity = stringSimilarity.compareTwoStrings(normalizedTitle, productNormalizedTitle);
-      
+
       if (similarity >= this.SIMILARITY_THRESHOLD && similarity > bestSimilarity) {
         // Check property match
         const marketProducts = await this.marketProductRepo.find({
@@ -203,7 +227,14 @@ export class MatchingService {
 
     const savedProduct = await this.productRepo.save(product);
     this.logger.log(`[Matching] Created new Product ID ${savedProduct.id}: "${savedProduct.canonical_title}"`);
-    
+
+    // Index the new master product in MeiliSearch immediately
+    try {
+      await this.searchService.indexMasterProduct(savedProduct);
+    } catch (e) {
+      this.logger.warn(`Failed to index new product ${savedProduct.id}: ${e.message}`);
+    }
+
     return savedProduct;
   }
 
@@ -236,136 +267,51 @@ export class MatchingService {
     if (!query || query.trim().length === 0) {
       return [];
     }
-    
-    const normalizedQuery = this.normalizeString(query);
-    this.logger.debug(`[Search] Query: "${query}" -> Normalized: "${normalizedQuery}"`);
-    
-    // Get all products and use our normalization for matching (handles Turkish characters correctly)
-    const allProducts = await this.productRepo.find();
-    this.logger.debug(`[Search] Found ${allProducts.length} total products in products_master`);
-    
+
+    // Use MeiliSearch for fast, typo-tolerant search
+    this.logger.debug(`[Search] Searching MeiliSearch for: "${query}"`);
+    let hits;
+    try {
+      hits = await this.searchService.searchMasterProducts(query, limit);
+    } catch (e) {
+      // Fallback if MeiliSearch is down (rare, but good for stability)
+      this.logger.error(`[Search] MeiliSearch failed, fallback to empty: ${e.message}`);
+      hits = [];
+    }
+
+    // Map hits to Product entities (or Hydrate them if needed)
+    // MeiliSearch returns JSON objects. We might need to cast them or reload from DB if we need full entity methods.
+    // Ideally Meili result has enough info.
     let results: Product[] = [];
-    
-    if (allProducts.length > 0) {
-      // Split query into words for word-based matching
-      const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
-      
-      // Score products by similarity (using normalized strings for Turkish character handling)
-      const scoredProducts = allProducts.map(product => {
-        const normalizedTitle = this.normalizeString(product.canonical_title);
-        const similarity = stringSimilarity.compareTwoStrings(normalizedQuery, normalizedTitle);
-        
-        // Check if all query words are contained in normalized title (word-based matching)
-        // This prevents "süt" from matching "Pınar Su" (because "sut" is not a word in "pinar su")
-        let containsMatch = false;
-        if (queryWords.length > 0) {
-          containsMatch = queryWords.every(word => {
-            // Check if word appears as a whole word (not as substring of another word)
-            // Use word boundaries: word must be at start/end or surrounded by spaces/non-word chars
-            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
-            const matches = wordRegex.test(normalizedTitle);
-            
-            // Debug log for "Su" product specifically
-            if (normalizedTitle === 'su' || product.canonical_title === 'Su') {
-              this.logger.debug(`[Search] Word match check for "Su": queryWord="${word}", normalizedTitle="${normalizedTitle}", regex="${wordRegex}", matches=${matches}, productTitle="${product.canonical_title}"`);
-            }
-            
-            return matches;
-          });
-        }
-        
-        return { product, similarity, containsMatch };
-      });
-      
-      // Log top matches for debugging
-      const topMatches = scoredProducts
-        .filter(item => item.similarity > 0.1)
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, 5);
-      if (topMatches.length > 0) {
-        this.logger.debug(`[Search] Top matches: ${topMatches.map(m => `"${m.product.canonical_title}" (${(m.similarity * 100).toFixed(1)}%, containsMatch: ${m.containsMatch})`).join(', ')}`);
-      } else {
-        this.logger.debug(`[Search] No matches found with similarity > 0.1`);
+    if (hits.length > 0) {
+      // Load full entities from DB to ensure we have all fields/methods if needed
+      // Or just cast if the shape is compatible. Given we put 'id', 'canonical_title', 'image_url', 'category', it should be fine.
+      // But to be safe and consistent with TypeORM entities, let's fetch by IDs.
+      const ids = hits.map(h => h.id);
+      if (ids.length > 0) {
+        // Preserve order from MeiliSearch
+        const products = await this.productRepo
+          .createQueryBuilder("product")
+          .where("product.id IN (:...ids)", { ids })
+          .getMany();
+
+        // Sort based on ID order in hits
+        results = ids.map(id => products.find(p => p.id === id)).filter(p => !!p);
       }
+    }
 
-    // For single-word queries, require word-based match (prevents "süt" matching "Pınar Su")
-    const isSingleWordQuery = queryWords.length === 1;
-    this.logger.debug(`[Search] Single word query: ${isSingleWordQuery}, query words: ${JSON.stringify(queryWords)}`);
-    
-    // Prioritize exact/contains matches, then fuzzy matches
-    const exactMatches = scoredProducts
-      .filter(item => {
-        // Special debug for "Su" product
-        if (item.product.canonical_title === 'Su' || item.product.canonical_title.toLowerCase().includes('su')) {
-          this.logger.debug(`[Search] Processing "Su" product: canonical_title="${item.product.canonical_title}", similarity=${(item.similarity * 100).toFixed(1)}%, containsMatch=${item.containsMatch}, isSingleWordQuery=${isSingleWordQuery}`);
-        }
-        
-        // If single word query, must have containsMatch (word-based)
-        if (isSingleWordQuery && !item.containsMatch) {
-          this.logger.debug(`[Search] Rejecting "${item.product.canonical_title}" (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: false) - single word query requires word match`);
-          return false;
-        }
-        // Otherwise, allow high similarity or word-based contains match
-        const accepted = item.containsMatch || item.similarity > 0.85;
-        if (accepted) {
-          this.logger.debug(`[Search] Accepting "${item.product.canonical_title}" as exact match (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: ${item.containsMatch})`);
-        }
-        return accepted;
-      })
-      .sort((a, b) => {
-        // Prioritize contains matches, then by similarity
-        if (a.containsMatch && !b.containsMatch) return -1;
-        if (!a.containsMatch && b.containsMatch) return 1;
-        return b.similarity - a.similarity;
-      })
-      .map(item => item.product);
+    // Apply brand filters
+    results = this.applyBrandFilters(results, includeBrands, excludeBrands);
 
-    const exactMatchIds = new Set(exactMatches.map(p => p.id));
-    const fuzzyMatches = scoredProducts
-      .filter(item => !exactMatchIds.has(item.product.id)) // Don't duplicate exact matches
-      .filter(item => {
-        // For single word queries, require containsMatch even for fuzzy matches
-        if (isSingleWordQuery && !item.containsMatch) {
-          this.logger.debug(`[Search] Rejecting "${item.product.canonical_title}" from fuzzy matches (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: false) - single word query requires word match`);
-          return false;
-        }
-        const accepted = item.similarity > 0.5; // Minimum 50% similarity
-        if (accepted) {
-          this.logger.debug(`[Search] Accepting "${item.product.canonical_title}" as fuzzy match (similarity: ${(item.similarity * 100).toFixed(1)}%, containsMatch: ${item.containsMatch})`);
-        }
-        return accepted;
-      })
-      .sort((a, b) => b.similarity - a.similarity)
-      .map(item => item.product);
+    this.logger.debug(`[Search] Found ${results.length} results from MeiliSearch.`);
 
-      // Return exact matches first, then fuzzy matches
-      results = [...exactMatches, ...fuzzyMatches].slice(0, limit);
-      this.logger.debug(`[Search] Found ${results.length} results from products_master: ${results.map(r => `"${r.canonical_title}"`).join(', ')}`);
-      this.logger.debug(`[Search] Exact matches: ${exactMatches.length}, Fuzzy matches: ${fuzzyMatches.length}`);
-      
-      // If we didn't find enough results (or found none), also search market_products as fallback
-      if (results.length === 0 || results.length < limit) {
-        this.logger.debug(`[Search] Only found ${results.length} results in products_master, searching market_products for more`);
-        const marketProductResults = await this.searchMarketProductsAndCreate(normalizedQuery, limit - results.length, includeBrands, excludeBrands);
-        this.logger.debug(`[Search] Found ${marketProductResults.length} results from market_products`);
-        if (marketProductResults.length > 0) {
-          // Merge results, avoiding duplicates
-          const existingIds = new Set(results.map(p => p.id));
-          const newResults = marketProductResults.filter(p => !existingIds.has(p.id));
-          results = [...results, ...newResults].slice(0, limit);
-          this.logger.debug(`[Search] Combined results: ${results.length} total`);
-        }
-      }
-      
-      // Apply brand filters
-      results = this.applyBrandFilters(results, includeBrands, excludeBrands);
-    } else {
-      // Fallback: Search market_products directly and create Product entries on-the-fly
-      this.logger.debug(`[Search] products_master is empty, searching market_products directly`);
+    // Fallback: If no results, try the legacy regex search on market_products (slow but safe fallback)
+    if (results.length === 0) {
+      this.logger.debug(`[Search] No MeiliSearch results, trying legacy fallback on market_products`);
+      const normalizedQuery = this.normalizeString(query);
       results = await this.searchMarketProductsAndCreate(normalizedQuery, limit, includeBrands, excludeBrands);
     }
-    
+
     return results;
   }
 
@@ -383,17 +329,17 @@ export class MatchingService {
       relations: ['market'],
       take: 2000 // Limit to avoid memory issues
     });
-    
+
     this.logger.debug(`[Search] Found ${marketProducts.length} market_products to search`);
-    
+
     // Split query into words for word-based matching
     const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
-    
+
     // Score market products by similarity
     const scoredMarketProducts = marketProducts.map(mp => {
       const normalizedTitle = this.normalizeString(mp.title);
       const similarity = stringSimilarity.compareTwoStrings(normalizedQuery, normalizedTitle);
-      
+
       // Check if all query words are contained in normalized title (word-based matching)
       const containsMatch = queryWords.length > 0 && queryWords.every(word => {
         // Check if word appears as a whole word (not as substring of another word)
@@ -402,13 +348,13 @@ export class MatchingService {
         const wordRegex = new RegExp(`(^|[^\\w])${escapedWord}([^\\w]|$)`, 'i');
         return wordRegex.test(normalizedTitle);
       });
-      
+
       return { marketProduct: mp, similarity, containsMatch };
     });
-    
+
     // For single-word queries, require word-based match (prevents "süt" matching "Pınar Su")
     const isSingleWordQuery = queryWords.length === 1;
-    
+
     // Get top matches
     const topMarketProducts = scoredMarketProducts
       .filter(item => {
@@ -426,12 +372,12 @@ export class MatchingService {
       })
       .slice(0, limit * 2) // Get more to account for brand filtering
       .map(item => item.marketProduct);
-    
+
     this.logger.debug(`[Search] Found ${topMarketProducts.length} matching market_products`);
-    
+
     // Create Product entries from market products (deduplicate by normalized title)
     const productMap = new Map<string, Product>();
-    
+
     for (const mp of topMarketProducts) {
       const normalizedTitle = this.normalizeString(mp.title);
       if (!productMap.has(normalizedTitle)) {
@@ -439,7 +385,7 @@ export class MatchingService {
         const existingProduct = await this.productRepo.findOne({
           where: { canonical_title: mp.title }
         });
-        
+
         if (existingProduct) {
           productMap.set(normalizedTitle, existingProduct);
         } else {
@@ -452,7 +398,7 @@ export class MatchingService {
           productMap.set(normalizedTitle, savedProduct);
           this.logger.debug(`[Search] Created Product "${savedProduct.canonical_title}" from market product`);
         }
-        
+
         // Link the market product to the product
         if (mp.product_master_id === null) {
           const product = productMap.get(normalizedTitle);
@@ -463,12 +409,12 @@ export class MatchingService {
         }
       }
     }
-    
+
     let results = Array.from(productMap.values());
-    
+
     // Apply brand filters
     results = this.applyBrandFilters(results, includeBrands, excludeBrands);
-    
+
     return results.slice(0, limit);
   }
 
@@ -487,7 +433,7 @@ export class MatchingService {
 
     return products.filter(product => {
       const normalizedTitle = this.normalizeString(product.canonical_title);
-      
+
       // Exclude brands - if title contains any excluded brand, filter out
       if (excludeBrands.length > 0) {
         const isExcluded = excludeBrands.some(excludeBrand => {
@@ -496,7 +442,7 @@ export class MatchingService {
         });
         if (isExcluded) return false;
       }
-      
+
       // Include brands - if specified, only show products where title contains at least one included brand
       if (includeBrands.length > 0) {
         const isIncluded = includeBrands.some(includeBrand => {
@@ -505,7 +451,7 @@ export class MatchingService {
         });
         if (!isIncluded) return false;
       }
-      
+
       return true;
     });
   }

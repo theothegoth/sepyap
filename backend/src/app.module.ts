@@ -7,6 +7,7 @@ import { OptimizationModule } from './optimization/optimization.module';
 import { MatchingModule } from './matching/matching.module';
 import { PriceHistoryModule } from './price-history/price-history.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { SearchModule } from './search/search.module';
 import { CorsInterceptor } from './common/cors.interceptor';
 
 @Module({
@@ -38,6 +39,7 @@ import { CorsInterceptor } from './common/cors.interceptor';
     MatchingModule,
     PriceHistoryModule,
     AlertsModule,
+    SearchModule,
   ],
   providers: [
     {
@@ -46,5 +48,5 @@ import { CorsInterceptor } from './common/cors.interceptor';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
 

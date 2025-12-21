@@ -10,6 +10,7 @@ import { Market } from '../entities/Market.entity';
 import { MatchingModule } from '../matching/matching.module';
 import { PriceHistoryModule } from '../price-history/price-history.module';
 import { AlertsModule } from '../alerts/alerts.module';
+import { SearchModule } from '../search/search.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AlertsModule } from '../alerts/alerts.module';
     MatchingModule,
     PriceHistoryModule,
     AlertsModule,
+    SearchModule,
   ],
   controllers: [IngestController],
   providers: [
@@ -28,4 +30,4 @@ import { AlertsModule } from '../alerts/alerts.module';
   ],
   exports: [IngestService],
 })
-export class IngestModule {}
+export class IngestModule { }
