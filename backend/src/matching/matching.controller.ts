@@ -4,7 +4,7 @@ import { MarketProduct } from '../entities/MarketProduct.entity';
 
 @Controller('api/matching')
 export class MatchingController {
-  constructor(private readonly matchingService: MatchingService) {}
+  constructor(private readonly matchingService: MatchingService) { }
 
   @Get('product/:productId/markets')
   async getProductMarkets(@Param('productId') productId: number) {
@@ -29,6 +29,7 @@ export class MatchingController {
     @Query('limit') limit?: string,
     @Query('includeBrands') includeBrands?: string,
     @Query('excludeBrands') excludeBrands?: string,
+    @Query('strict') strict?: string,
   ) {
     if (!query) {
       return { products: [] };
@@ -42,7 +43,8 @@ export class MatchingController {
     const limitNum = limit ? parseInt(limit, 10) : 20;
     const includeBrandsList = includeBrands ? includeBrands.split(',').map(b => b.trim()).filter(Boolean) : [];
     const excludeBrandsList = excludeBrands ? excludeBrands.split(',').map(b => b.trim()).filter(Boolean) : [];
-    const products = await this.matchingService.searchProducts(query, limitNum, includeBrandsList, excludeBrandsList);
+    const isStrict = strict === 'true';
+    const products = await this.matchingService.searchProducts(query, limitNum, includeBrandsList, excludeBrandsList, isStrict);
     return { products };
   }
 

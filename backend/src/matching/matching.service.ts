@@ -262,21 +262,27 @@ export class MatchingService {
     query: string,
     limit: number = 20,
     includeBrands: string[] = [],
-    excludeBrands: string[] = []
+    excludeBrands: string[] = [],
+    strict: boolean = false
   ): Promise<Product[]> {
     if (!query || query.trim().length === 0) {
       return [];
     }
 
     // Use MeiliSearch for fast search
-    // We force exact word matching by quoting terms (to avoid "süt" matching "sütlaç")
-    const terms = query.replace(/"/g, '').trim().split(/\s+/);
-    const exactQuery = terms.map(t => `"${t}"`).join(' ');
+    let searchQuery = query;
+    if (strict) {
+      // We force exact word matching by quoting terms (to avoid "süt" matching "sütlaç")
+      const terms = query.replace(/"/g, '').trim().split(/\s+/);
+      searchQuery = terms.map(t => `"${t}"`).join(' ');
+      this.logger.debug(`[Search] Searching MeiliSearch (Strict): "${query}" -> "${searchQuery}"`);
+    } else {
+      this.logger.debug(`[Search] Searching MeiliSearch (Fuzzy/Prefix): "${query}"`);
+    }
 
-    this.logger.debug(`[Search] Searching MeiliSearch for: "${query}" (Transformed: ${exactQuery})`);
     let hits;
     try {
-      hits = await this.searchService.searchMasterProducts(exactQuery, limit);
+      hits = await this.searchService.searchMasterProducts(searchQuery, limit);
     } catch (e) {
       // Fallback if MeiliSearch is down (rare, but good for stability)
       this.logger.error(`[Search] MeiliSearch failed, fallback to empty: ${e.message}`);

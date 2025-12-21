@@ -140,7 +140,13 @@ export class OptimizationService {
         // This allows us to find products by their canonical title or fuzzy matching,
         // which is much better than the fallback regex search (handles Turkish characters correctly)
         // matchingService.searchProducts() returns potential matching Products
-        const products = await this.matchingService.searchProducts(item.query, 5);
+        const products = await this.matchingService.searchProducts(
+          item.query,
+          5,
+          [], // includeBrands
+          [], // excludeBrands
+          true // strict mode: use exact word matching (quotes)
+        );
 
         if (products.length > 0) {
           // Get all MarketProducts for matched products
