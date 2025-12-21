@@ -57,7 +57,7 @@ export class OptimizationService {
     @InjectRepository(Product)
     private productRepo: Repository<Product>,
     private matchingService: MatchingService,
-  ) {}
+  ) { }
 
   /**
    * Find cheapest cart - Enhanced version using Product matching
@@ -107,7 +107,7 @@ export class OptimizationService {
             .leftJoinAndSelect('mp.market', 'market')
             .leftJoinAndSelect('mp.product', 'product')
             .andWhere('mp.in_stock = true');
-          
+
           // Apply market filter early if specified (more efficient)
           if (allowedMarkets.length > 0) {
             const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
@@ -123,7 +123,7 @@ export class OptimizationService {
               `[Optimization] buildMarketProductQuery: No market filter (allowedMarkets.length = ${allowedMarkets.length})`,
             );
           }
-          
+
           return queryBuilder;
         };
 
@@ -137,25 +137,25 @@ export class OptimizationService {
         const products = await this.matchingService.searchProducts(item.query, 5);
 
         if (products.length > 0) {
-            // Get all MarketProducts for matched products
-            // If market filter is active, buildMarketProductQuery() will apply it
-            const productIds = products.map((p) => p.id);
-            const queryBuilder = buildMarketProductQuery();
-            candidates = await queryBuilder
-              .andWhere('mp.product_master_id IN (:...productIds)', { productIds })
-              .getMany();
+          // Get all MarketProducts for matched products
+          // If market filter is active, buildMarketProductQuery() will apply it
+          const productIds = products.map((p) => p.id);
+          const queryBuilder = buildMarketProductQuery();
+          candidates = await queryBuilder
+            .andWhere('mp.product_master_id IN (:...productIds)', { productIds })
+            .getMany();
 
+          this.logger.debug(
+            `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}" via Product search (Markets: ${allowedMarkets.join(', ') || 'All'})`,
+          );
+          if (candidates.length > 0) {
+            const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
             this.logger.debug(
-              `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}" via Product search (Markets: ${allowedMarkets.join(', ') || 'All'})`,
+              `[Optimization] Sample MarketProducts: ${sampleProducts}`,
             );
-            if (candidates.length > 0) {
-              const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
-              this.logger.debug(
-                `[Optimization] Sample MarketProducts: ${sampleProducts}`,
-              );
-            }
+          }
         } else {
-             this.logger.debug(
+          this.logger.debug(
             `[Optimization] No products found in master list for "${item.query}", proceeding to fallback search`,
           );
         }
@@ -168,7 +168,7 @@ export class OptimizationService {
         if (candidates.length === 0) {
           const normalizedQuery = item.query.trim().toLowerCase();
           const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
-          
+
           // Use word-based search: each query word must appear as a whole word in the title
           // This prevents "süt" from matching "Pınar Su" (because "sut" is not a word in "pinar su")
           if (queryWords.length > 0) {
@@ -181,7 +181,7 @@ export class OptimizationService {
               // PostgreSQL uses \y for word boundaries, but we'll use a simpler approach
               return `LOWER(TRIM(mp.title)) ~* '(^|[^a-z0-9])${escapedWord}([^a-z0-9]|$)'`;
             });
-            
+
             const queryBuilder = buildMarketProductQuery();
             this.logger.log(
               `[Optimization] Fallback search: Searching for "${item.query}" with market filter: [${allowedMarkets.join(', ')}]`,
@@ -189,7 +189,7 @@ export class OptimizationService {
             candidates = await queryBuilder
               .andWhere(`(${wordConditions.join(' AND ')})`, {})
               .getMany();
-            
+
             this.logger.log(
               `[Optimization] Fallback search: Found ${candidates.length} MarketProducts for query "${item.query}"`,
             );
@@ -263,13 +263,12 @@ export class OptimizationService {
       const candidates = candidatesMap.get(key) || [];
       if (candidates.length === 0) {
         this.logger.warn(
-          `No products found for: ${
-            item.productId ? `Product ID ${item.productId}` : `query "${item.query}"`
+          `No products found for: ${item.productId ? `Product ID ${item.productId}` : `query "${item.query}"`
           }`,
         );
         continue;
       }
-      
+
       // Debug: Log candidates for query-based items
       if (item.query && item.query.trim()) {
         const marketCounts = new Map<string, number>();
@@ -287,33 +286,38 @@ export class OptimizationService {
       // If query string provided, ensure selected product title contains the query word
       // This prevents "süt" from selecting "Pınar Su" (because "süt" is not in "Pınar Su")
       let chosenProduct = candidates[0]; // Take most efficient (best price per unit)
-      
+
       if (item.query && item.query.trim()) {
         const queryWords = item.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
         const productTitle = chosenProduct.title.toLowerCase();
-        
+
         this.logger.debug(
           `[Optimization] Validating query "${item.query}" against "${chosenProduct.title}" (${chosenProduct.market?.name})`,
         );
-        
+
         // Check if all query words appear as whole words in the product title
         const allWordsMatch = queryWords.every(word => {
           // Use word boundary regex: word must be at start/end or surrounded by non-word chars
           const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // Improved regex: include more turkish chars if needed, though ığüşöç covers most
           const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
           const matches = wordRegex.test(productTitle);
-          this.logger.debug(
-            `[Optimization] Query word "${word}" ${matches ? 'matches' : 'does not match'} in "${productTitle}"`,
-          );
+
+          if (!matches) {
+            this.logger.debug(
+              `[Optimization] Mismatch: Query word "${word}" NOT found in "${productTitle}" (Regex: ${wordRegex.source})`
+            );
+          }
+
           return matches;
         });
-        
+
         // If query words don't match, try next candidates
         if (!allWordsMatch) {
           this.logger.debug(
-            `[Optimization] Rejecting "${chosenProduct.title}" - query "${item.query}" words don't match. Trying next ${candidates.length - 1} candidates...`,
+            `[Optimization] Rejecting "${chosenProduct.title}" - query "${item.query}" words don't match. Trying next candidates...`,
           );
-          
+
           let foundMatch = false;
           for (let i = 1; i < candidates.length; i++) {
             const candidate = candidates[i];
@@ -323,7 +327,7 @@ export class OptimizationService {
               const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
               return wordRegex.test(candidateTitle);
             });
-            
+
             if (candidateWordsMatch) {
               chosenProduct = candidate;
               foundMatch = true;
@@ -331,13 +335,16 @@ export class OptimizationService {
                 `[Optimization] Selected alternative candidate "${chosenProduct.title}" (${chosenProduct.market?.name}) - query words match`,
               );
               break;
+            } else {
+              // Log rejection for alternatives too if they are close (optional, maybe too verbose)
+              // this.logger.debug(`[Optimization] Alternative "${candidate.title}" rejected`);
             }
           }
-          
+
           // If no candidate matches, skip this item (don't use first candidate)
           if (!foundMatch) {
             this.logger.warn(
-              `[Optimization] No candidate matches query "${item.query}" - skipping item. Checked ${candidates.length} candidates. Sample: ${candidates.slice(0, 3).map(c => `"${c.title}" (${c.market?.name})`).join(', ')}`,
+              `[Optimization] FIX_VER_2: No candidate matches query "${item.query}" - skipping item. Checked ${candidates.length} candidates.`,
             );
             continue; // Skip this item instead of using wrong product
           }
@@ -347,7 +354,7 @@ export class OptimizationService {
           );
         }
       }
-      
+
       this.logger.debug(
         `[Optimization] Selected product for "${item.query || `Product ID ${item.productId}`}": "${chosenProduct.title}" (${chosenProduct.market?.name}, ${chosenProduct.price} TL)`,
       );
@@ -409,7 +416,7 @@ export class OptimizationService {
 
     // Alternatif sepetler: tek marketten alışveriş yapılabilecek sepetler
     const alternativeCarts: AlternativeCart[] = [];
-    
+
     this.logger.log(
       `[Optimization] Starting alternative carts algorithm. allMarkets: [${Array.from(allMarkets).join(', ')}], allowedMarkets: [${allowedMarkets.join(', ')}]`,
     );
@@ -424,7 +431,7 @@ export class OptimizationService {
           continue;
         }
       }
-      
+
       this.logger.log(
         `[Optimization] Alternative cart: Processing market "${marketName}"`,
       );
@@ -439,14 +446,14 @@ export class OptimizationService {
       for (const item of cartItems) {
         const key = item.productId || item.query || 'unknown';
         const candidates = candidatesMap.get(key) || [];
-        
+
         // Find candidate for this market, but validate query words if query string provided
         let candidateForMarket: MarketProduct | undefined = undefined;
-        
+
         if (item.query && item.query.trim()) {
           // For query-based items, validate that candidate title contains query words
           const queryWords = item.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
-          
+
           // Try to find a candidate for this market that matches query words
           for (const candidate of candidates) {
             if (candidate.market?.name === marketName) {
@@ -456,7 +463,7 @@ export class OptimizationService {
                 const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
                 return wordRegex.test(candidateTitle);
               });
-              
+
               if (allWordsMatch) {
                 candidateForMarket = candidate;
                 this.logger.log(
@@ -470,7 +477,7 @@ export class OptimizationService {
               }
             }
           }
-          
+
           // If no valid candidate found for query-based item, skip this market
           if (!candidateForMarket) {
             this.logger.log(
@@ -485,7 +492,7 @@ export class OptimizationService {
             (c) => c.market?.name === marketName,
           );
         }
-        
+
         if (!candidateForMarket) {
           canServeAllItems = false;
           break;
@@ -781,9 +788,9 @@ export class OptimizationService {
     const cheapest =
       markets.length > 0
         ? {
-            marketName: markets[0].marketName,
-            price: markets[0].effectivePrice,
-          }
+          marketName: markets[0].marketName,
+          price: markets[0].effectivePrice,
+        }
         : null;
 
     return {
