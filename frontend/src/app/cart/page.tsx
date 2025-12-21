@@ -662,14 +662,22 @@ function CartContent() {
                               </div>
                             </div>
                             {alt.breakdown.map((basket: any, idx: number) => (
-                              <div
-                                key={idx}
-                                className="text-xs text-gray-700 dark:text-gray-300"
-                              >
-                                <span className="font-semibold">
+                              <div key={idx} className="mt-2">
+                                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                                   {basket.marketName}
-                                </span>{' '}
-                                – {basket.subtotal.toFixed(2)} TL
+                                </div>
+                                <div className="ml-2 space-y-1">
+                                  {basket.items.map((item: any, itemIdx: number) => (
+                                    <div key={itemIdx} className="text-xs text-gray-600 dark:text-gray-400 flex justify-between">
+                                      <span>{item.quantity}x {item.name}</span>
+                                      <span className="font-mono">{item.total.toFixed(2)} TL</span>
+                                    </div>
+                                  ))}
+                                  <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex justify-between border-t border-gray-200 dark:border-gray-600 pt-1">
+                                    <span>Toplam:</span>
+                                    <span>{basket.subtotal.toFixed(2)} TL</span>
+                                  </div>
+                                </div>
                               </div>
                             ))}
                             {(alt as any).missingItems && (alt as any).missingItems.length > 0 && (
