@@ -144,9 +144,6 @@ export class OptimizationService {
           return queryBuilder;
         };
 
-        // If market filter is applied, skip Product search and go directly to fallback search
-        // This is because matchingService.searchProducts() doesn't know about market filter
-        // and might return products that don't exist in the selected market
         // Always search for products matching the query first (even with market filter)
         // This allows us to find products by their canonical title or fuzzy matching,
         // which is much better than the fallback regex search (handles Turkish characters correctly)
@@ -300,505 +297,503 @@ export class OptimizationService {
           `[Optimization] Found ${candidates.length} candidates for query "${item.query}". Markets: ${marketSummary}`,
         );
       }
+
       // If query string provided, ensure selected product title contains the query word
-      // This prevents "süt" from selecting "Pınar Su" (because "süt" is not in "Pınar Su")
       let chosenProduct = candidates[0]; // Take most efficient (best price per unit)
 
-      const normalizedQuery = this.normalizeString(item.query);
-      const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
-      const productTitle = this.normalizeString(chosenProduct.title);
+      if (item.query && item.query.trim()) {
+        const normalizedQuery = this.normalizeString(item.query);
+        const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+        const productTitle = this.normalizeString(chosenProduct.title);
 
-      this.logger.debug(
-        `[Optimization] FIX_VER_3: Validating query "${item.query}" (${normalizedQuery}) against "${chosenProduct.title}" (${productTitle})`,
-      );
-
-      // Check if all query words appear in the product title (using simple includes after normalization)
-      // This is safer than regex for Turkish characters
-      const allWordsMatch = queryWords.every(word => {
-        const matches = productTitle.includes(word);
-        if (!matches) {
-          this.logger.debug(
-            `[Optimization] Mismatch: Word "${word}" not found in title`
-          );
-        }
-        return matches;
-      });
-
-      // If query words don't match, try next candidates
-      if (!allWordsMatch) {
         this.logger.debug(
-          `[Optimization] Rejecting "${chosenProduct.title}"...`,
+          `[Optimization] FIX_VER_3: Validating query "${item.query}" (${normalizedQuery}) against "${chosenProduct.title}" (${productTitle})`,
         );
 
-        let foundMatch = false;
-        for (let i = 1; i < candidates.length; i++) {
-          const candidate = candidates[i];
-          const candidateTitle = this.normalizeString(candidate.title);
-          const candidateWordsMatch = queryWords.every(word => candidateTitle.includes(word));
-
-          if (candidateWordsMatch) {
-            chosenProduct = candidate;
-            foundMatch = true;
+        // Check if all query words appear in the product title (using simple includes after normalization)
+        // This is safer than regex for Turkish characters
+        const allWordsMatch = queryWords.every(word => {
+          const matches = productTitle.includes(word);
+          if (!matches) {
             this.logger.debug(
-              `[Optimization] Selected alternative candidate "${chosenProduct.title}"`,
+              `[Optimization] Mismatch: Word "${word}" not found in title`
             );
-            break;
+          }
+          return matches;
+        });
+
+        // If query words don't match, try next candidates
+        if (!allWordsMatch) {
+          this.logger.debug(
+            `[Optimization] Rejecting "${chosenProduct.title}"...`,
+          );
+
+          let foundMatch = false;
+          for (let i = 1; i < candidates.length; i++) {
+            const candidate = candidates[i];
+            const candidateTitle = this.normalizeString(candidate.title);
+            const candidateWordsMatch = queryWords.every(word => candidateTitle.includes(word));
+
+            if (candidateWordsMatch) {
+              chosenProduct = candidate;
+              foundMatch = true;
+              this.logger.debug(
+                `[Optimization] Selected alternative candidate "${chosenProduct.title}"`,
+              );
+              break;
+            }
+          }
+
+          // If no candidate matches, skip this item (don't use first candidate)
+          if (!foundMatch) {
+            this.logger.warn(
+              `[Optimization] FIX_VER_3: No candidate matches query "${item.query}" - skipping item.`,
+            );
+            continue;
           }
         }
+      }
 
-        // If no candidate matches, skip this item (don't use first candidate)
-        if (!foundMatch) {
-          this.logger.warn(
-            `[Optimization] FIX_VER_3: No candidate matches query "${item.query}" - skipping item.`,
+      this.logger.debug(
+        `[Optimization] Selected product for "${item.query || `Product ID ${item.productId}`}": "${chosenProduct.title}" (${chosenProduct.market?.name}, ${chosenProduct.price} TL)`,
+      );
+      chosenItems.push({
+        itemKey: key,
+        product: chosenProduct,
+        quantity: item.quantity,
+      });
+    }
+
+    const marketBaskets = new Map<string, BasketBreakdown>();
+
+    for (const selection of chosenItems) {
+      const marketName = selection.product.market.name;
+      if (!marketBaskets.has(marketName)) {
+        marketBaskets.set(marketName, {
+          marketName,
+          items: [],
+          subtotal: 0,
+          deliveryFee: 0,
+          total: 0,
+        });
+      }
+
+      const basket = marketBaskets.get(marketName)!;
+      const effectivePrice = selection.product.price_card || selection.product.price;
+      const productPrice = Number(effectivePrice);
+      const lineTotal = productPrice * selection.quantity;
+
+      basket.items.push({
+        name: selection.product.title,
+        price: productPrice,
+        quantity: selection.quantity,
+        total: lineTotal,
+        product: selection.product,
+      });
+      basket.subtotal += lineTotal;
+    }
+
+    const breakdown: BasketBreakdown[] = [];
+    let grandTotal = 0;
+
+    for (const basket of marketBaskets.values()) {
+      const market = basket.items[0]?.product?.market;
+      const deliveryFee = this.calculateDeliveryFee(basket.subtotal, market);
+      basket.deliveryFee = deliveryFee;
+
+      basket.total = basket.subtotal;
+      grandTotal += basket.total;
+      breakdown.push(basket);
+    }
+
+    breakdown.sort((a, b) => (a.total || 0) - (b.total || 0));
+
+    const result: OptimizedResult = {
+      totalPrice: grandTotal,
+      breakdown,
+    };
+
+    // Alternatif sepetler: tek marketten alışveriş yapılabilecek sepetler
+    const alternativeCarts: AlternativeCart[] = [];
+
+    this.logger.log(
+      `[Optimization] Starting alternative carts algorithm. allMarkets: [${Array.from(allMarkets).join(', ')}], allowedMarkets: [${allowedMarkets.join(', ')}]`,
+    );
+
+    for (const marketName of allMarkets) {
+      if (allowedMarkets.length > 0) {
+        const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
+        if (!normalizedAllowed.includes(marketName.trim().toLowerCase())) {
+          this.logger.log(
+            `[Optimization] Alternative cart: Skipping market "${marketName}" - not in allowedMarkets`,
           );
           continue;
         }
       }
-    }
 
-    this.logger.debug(
-      `[Optimization] Selected product for "${item.query || `Product ID ${item.productId}`}": "${chosenProduct.title}" (${chosenProduct.market?.name}, ${chosenProduct.price} TL)`,
-    );
-    chosenItems.push({
-      itemKey: key,
-      product: chosenProduct,
-      quantity: item.quantity,
-    });
-  }
+      this.logger.log(
+        `[Optimization] Alternative cart: Processing market "${marketName}"`,
+      );
 
-  const marketBaskets = new Map<string, BasketBreakdown>();
+      const selectionsForMarket: {
+        itemKey: string | number;
+        product: MarketProduct;
+        quantity: number;
+      }[] = [];
+      let canServeAllItems = true;
 
-  for(const selection of chosenItems) {
-    const marketName = selection.product.market.name;
-    if (!marketBaskets.has(marketName)) {
-      marketBaskets.set(marketName, {
+      for (const item of cartItems) {
+        const key = item.productId || item.query || 'unknown';
+        const candidates = candidatesMap.get(key) || [];
+
+        // Find candidate for this market, but validate query words if query string provided
+        let candidateForMarket: MarketProduct | undefined = undefined;
+
+        if (item.query && item.query.trim()) {
+          // For query-based items, validate that candidate title contains query words
+          const normalizedQuery = this.normalizeString(item.query);
+          const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
+
+          // Try to find a candidate for this market that matches query words
+          for (const candidate of candidates) {
+            if (candidate.market?.name === marketName) {
+              const candidateTitle = this.normalizeString(candidate.title);
+              const allWordsMatch = queryWords.every(word => candidateTitle.includes(word));
+
+              if (allWordsMatch) {
+                candidateForMarket = candidate;
+                this.logger.log(
+                  `[Optimization] Alternative cart: Found valid candidate "${candidate.title}" for query "${item.query}" in market "${marketName}"`,
+                );
+                break;
+              } else {
+                this.logger.log(
+                  `[Optimization] Alternative cart: Rejecting "${candidate.title}" for query "${item.query}" in market "${marketName}" - query words don't match`,
+                );
+              }
+            }
+          }
+
+          // If no valid candidate found for query-based item, skip this market
+          if (!candidateForMarket) {
+            this.logger.log(
+              `[Optimization] Alternative cart: No valid candidate found for query "${item.query}" in market "${marketName}" - skipping this market`,
+            );
+            canServeAllItems = false;
+            break;
+          }
+        } else {
+          // For productId-based items, just find first candidate for this market
+          candidateForMarket = candidates.find(
+            (c) => c.market?.name === marketName,
+          );
+        }
+
+        if (!candidateForMarket) {
+          canServeAllItems = false;
+          break;
+        }
+        selectionsForMarket.push({
+          itemKey: key,
+          product: candidateForMarket,
+          quantity: item.quantity,
+        });
+      }
+
+      if (!canServeAllItems || selectionsForMarket.length === 0) {
+        continue;
+      }
+
+      const altBasket: BasketBreakdown = {
         marketName,
         items: [],
         subtotal: 0,
         deliveryFee: 0,
         total: 0,
+      };
+
+      for (const selection of selectionsForMarket) {
+        const effectivePrice = selection.product.price_card || selection.product.price;
+        const productPrice = Number(effectivePrice);
+        const lineTotal = productPrice * selection.quantity;
+
+        altBasket.items.push({
+          name: selection.product.title,
+          price: productPrice,
+          quantity: selection.quantity,
+          total: lineTotal,
+          product: selection.product,
+        });
+        altBasket.subtotal += lineTotal;
+      }
+
+      const marketEntity = selectionsForMarket[0].product.market;
+      altBasket.deliveryFee = this.calculateDeliveryFee(altBasket.subtotal, marketEntity);
+      altBasket.total = altBasket.subtotal;
+
+      alternativeCarts.push({
+        id: `single-market-${marketName}`,
+        totalPrice: altBasket.total!,
+        breakdown: [altBasket],
+        marketCount: 1,
       });
     }
 
-    const basket = marketBaskets.get(marketName)!;
-    const effectivePrice = selection.product.price_card || selection.product.price;
-    const productPrice = Number(effectivePrice);
-    const lineTotal = productPrice * selection.quantity;
-
-    basket.items.push({
-      name: selection.product.title,
-      price: productPrice,
-      quantity: selection.quantity,
-      total: lineTotal,
-      product: selection.product,
-    });
-    basket.subtotal += lineTotal;
-  }
-
-  const breakdown: BasketBreakdown[] = [];
-    let grandTotal = 0;
-
-for (const basket of marketBaskets.values()) {
-  const market = basket.items[0]?.product?.market;
-  const deliveryFee = this.calculateDeliveryFee(basket.subtotal, market);
-  basket.deliveryFee = deliveryFee;
-
-  basket.total = basket.subtotal;
-  grandTotal += basket.total;
-  breakdown.push(basket);
-}
-
-breakdown.sort((a, b) => (a.total || 0) - (b.total || 0));
-
-const result: OptimizedResult = {
-  totalPrice: grandTotal,
-  breakdown,
-};
-
-// Alternatif sepetler: tek marketten alışveriş yapılabilecek sepetler
-const alternativeCarts: AlternativeCart[] = [];
-
-this.logger.log(
-  `[Optimization] Starting alternative carts algorithm. allMarkets: [${Array.from(allMarkets).join(', ')}], allowedMarkets: [${allowedMarkets.join(', ')}]`,
-);
-
-for (const marketName of allMarkets) {
-  if (allowedMarkets.length > 0) {
-    const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
-    if (!normalizedAllowed.includes(marketName.trim().toLowerCase())) {
-      this.logger.log(
-        `[Optimization] Alternative cart: Skipping market "${marketName}" - not in allowedMarkets`,
-      );
-      continue;
-    }
-  }
-
-  this.logger.log(
-    `[Optimization] Alternative cart: Processing market "${marketName}"`,
-  );
-
-  const selectionsForMarket: {
-    itemKey: string | number;
-    product: MarketProduct;
-    quantity: number;
-  }[] = [];
-  let canServeAllItems = true;
-
-  for (const item of cartItems) {
-    const key = item.productId || item.query || 'unknown';
-    const candidates = candidatesMap.get(key) || [];
-
-    // Find candidate for this market, but validate query words if query string provided
-    let candidateForMarket: MarketProduct | undefined = undefined;
-
-    if (item.query && item.query.trim()) {
-      // For query-based items, validate that candidate title contains query words
-      const queryWords = item.query.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
-
-      // Try to find a candidate for this market that matches query words
-      for (const candidate of candidates) {
-        if (candidate.market?.name === marketName) {
-          const candidateTitle = candidate.title.toLowerCase();
-          const allWordsMatch = queryWords.every(word => {
-            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const wordRegex = new RegExp(`(^|[^a-z0-9ığüşöç])${escapedWord}([^a-z0-9ığüşöç]|$)`, 'i');
-            return wordRegex.test(candidateTitle);
-          });
-
-          if (allWordsMatch) {
-            candidateForMarket = candidate;
-            this.logger.log(
-              `[Optimization] Alternative cart: Found valid candidate "${candidate.title}" for query "${item.query}" in market "${marketName}"`,
-            );
-            break;
-          } else {
-            this.logger.log(
-              `[Optimization] Alternative cart: Rejecting "${candidate.title}" for query "${item.query}" in market "${marketName}" - query words don't match`,
-            );
-          }
-        }
-      }
-
-      // If no valid candidate found for query-based item, skip this market
-      if (!candidateForMarket) {
-        this.logger.log(
-          `[Optimization] Alternative cart: No valid candidate found for query "${item.query}" in market "${marketName}" - skipping this market`,
-        );
-        canServeAllItems = false;
-        break;
-      }
-    } else {
-      // For productId-based items, just find first candidate for this market
-      candidateForMarket = candidates.find(
-        (c) => c.market?.name === marketName,
-      );
+    if (alternativeCarts.length > 0) {
+      alternativeCarts.sort((a, b) => a.totalPrice - b.totalPrice);
+      result.alternatives = alternativeCarts.slice(0, 3);
     }
 
-    if (!candidateForMarket) {
-      canServeAllItems = false;
-      break;
-    }
-    selectionsForMarket.push({
-      itemKey: key,
-      product: candidateForMarket,
-      quantity: item.quantity,
-    });
-  }
-
-  if (!canServeAllItems || selectionsForMarket.length === 0) {
-    continue;
-  }
-
-  const altBasket: BasketBreakdown = {
-    marketName,
-    items: [],
-    subtotal: 0,
-    deliveryFee: 0,
-    total: 0,
-  };
-
-  for (const selection of selectionsForMarket) {
-    const effectivePrice = selection.product.price_card || selection.product.price;
-    const productPrice = Number(effectivePrice);
-    const lineTotal = productPrice * selection.quantity;
-
-    altBasket.items.push({
-      name: selection.product.title,
-      price: productPrice,
-      quantity: selection.quantity,
-      total: lineTotal,
-      product: selection.product,
-    });
-    altBasket.subtotal += lineTotal;
-  }
-
-  const marketEntity = selectionsForMarket[0].product.market;
-  altBasket.deliveryFee = this.calculateDeliveryFee(altBasket.subtotal, marketEntity);
-  altBasket.total = altBasket.subtotal;
-
-  alternativeCarts.push({
-    id: `single-market-${marketName}`,
-    totalPrice: altBasket.total!,
-    breakdown: [altBasket],
-    marketCount: 1,
-  });
-}
-
-if (alternativeCarts.length > 0) {
-  alternativeCarts.sort((a, b) => a.totalPrice - b.totalPrice);
-  result.alternatives = alternativeCarts.slice(0, 3);
-}
-
-return result;
+    return result;
   }
 
   /**
    * Calculate price per unit (efficiency) from property string
    */
   private calculateEfficiency(price: number, property: string | null): number | null {
-  if (!property) return null;
+    if (!property) return null;
 
-  const normalized = property.toLowerCase().trim();
+    const normalized = property.toLowerCase().trim();
 
-  // multi-pack: "3 x 210 G"
-  const multiPackMatch = normalized.match(/(\d+)\s*x\s*(\d+)\s*(g|kg|ml|l|gr|lt)/);
-  if (multiPackMatch) {
-    const count = parseFloat(multiPackMatch[1]);
-    const amount = parseFloat(multiPackMatch[2]);
-    const unit = multiPackMatch[3];
-    const totalAmount = count * amount;
-    return this.calculatePricePerBaseUnit(price, totalAmount, unit);
-  }
+    // multi-pack: "3 x 210 G"
+    const multiPackMatch = normalized.match(/(\d+)\s*x\s*(\d+)\s*(g|kg|ml|l|gr|lt)/);
+    if (multiPackMatch) {
+      const count = parseFloat(multiPackMatch[1]);
+      const amount = parseFloat(multiPackMatch[2]);
+      const unit = multiPackMatch[3];
+      const totalAmount = count * amount;
+      return this.calculatePricePerBaseUnit(price, totalAmount, unit);
+    }
 
-  // range: "2-2.5 KG"
-  const rangeMatch = normalized.match(
-    /(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt)/,
-  );
-  if (rangeMatch) {
-    const min = parseFloat(rangeMatch[1].replace(',', '.'));
-    const max = parseFloat(rangeMatch[2].replace(',', '.'));
-    const unit = rangeMatch[3];
-    const avg = (min + max) / 2;
-    return this.calculatePricePerBaseUnit(price, avg, unit);
-  }
+    // range: "2-2.5 KG"
+    const rangeMatch = normalized.match(
+      /(\d+(?:[.,]\d+)?)\s*-\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt)/,
+    );
+    if (rangeMatch) {
+      const min = parseFloat(rangeMatch[1].replace(',', '.'));
+      const max = parseFloat(rangeMatch[2].replace(',', '.'));
+      const unit = rangeMatch[3];
+      const avg = (min + max) / 2;
+      return this.calculatePricePerBaseUnit(price, avg, unit);
+    }
 
-  // simple: "200 ML", "1 L", "500 G"
-  const simpleMatch = normalized.match(
-    /(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt|adet)/,
-  );
-  if (simpleMatch) {
-    const amount = parseFloat(simpleMatch[1].replace(',', '.'));
-    const unit = simpleMatch[2];
+    // simple: "200 ML", "1 L", "500 G"
+    const simpleMatch = normalized.match(
+      /(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|gr|lt|adet)/,
+    );
+    if (simpleMatch) {
+      const amount = parseFloat(simpleMatch[1].replace(',', '.'));
+      const unit = simpleMatch[2];
 
-    if (unit === 'adet') return null;
+      if (unit === 'adet') return null;
 
-    return this.calculatePricePerBaseUnit(price, amount, unit);
-  }
+      return this.calculatePricePerBaseUnit(price, amount, unit);
+    }
 
-  return null;
-}
-
-  private calculatePricePerBaseUnit(
-  price: number,
-  amount: number,
-  unit: string,
-): number | null {
-  const normalizedUnit = unit.toLowerCase();
-  let baseAmount: number;
-
-  if (normalizedUnit === 'l' || normalizedUnit === 'lt') {
-    baseAmount = amount;
-  } else if (normalizedUnit === 'ml') {
-    baseAmount = amount / 1000;
-  } else if (normalizedUnit === 'kg') {
-    baseAmount = amount;
-  } else if (normalizedUnit === 'g' || normalizedUnit === 'gr') {
-    baseAmount = amount / 1000;
-  } else {
     return null;
   }
 
-  if (baseAmount <= 0) return null;
+  private calculatePricePerBaseUnit(
+    price: number,
+    amount: number,
+    unit: string,
+  ): number | null {
+    const normalizedUnit = unit.toLowerCase();
+    let baseAmount: number;
 
-  return price / baseAmount;
-}
+    if (normalizedUnit === 'l' || normalizedUnit === 'lt') {
+      baseAmount = amount;
+    } else if (normalizedUnit === 'ml') {
+      baseAmount = amount / 1000;
+    } else if (normalizedUnit === 'kg') {
+      baseAmount = amount;
+    } else if (normalizedUnit === 'g' || normalizedUnit === 'gr') {
+      baseAmount = amount / 1000;
+    } else {
+      return null;
+    }
+
+    if (baseAmount <= 0) return null;
+
+    return price / baseAmount;
+  }
 
   private applyBrandFilters(
-  products: MarketProduct[],
-  includeBrands: string[],
-  excludeBrands: string[],
-): MarketProduct[] {
-  if (includeBrands.length === 0 && excludeBrands.length === 0) {
-    return products;
+    products: MarketProduct[],
+    includeBrands: string[],
+    excludeBrands: string[],
+  ): MarketProduct[] {
+    if (includeBrands.length === 0 && excludeBrands.length === 0) {
+      return products;
+    }
+
+    const normalizeString = (str: string): string => {
+      if (!str) return '';
+      let normalized = str
+        .replace(/İ/g, 'i')
+        .replace(/I/g, 'ı')
+        .toLowerCase()
+        .trim();
+      normalized = normalized
+        .replace(/ı/g, 'i')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c');
+      return normalized;
+    };
+
+    return products.filter((product) => {
+      const normalizedTitle = normalizeString(product.title);
+
+      if (excludeBrands.length > 0) {
+        const isExcluded = excludeBrands.some((excludeBrand) => {
+          const normalizedExclude = normalizeString(excludeBrand);
+          return normalizedTitle.includes(normalizedExclude);
+        });
+        if (isExcluded) return false;
+      }
+
+      if (includeBrands.length > 0) {
+        const isIncluded = includeBrands.some((includeBrand) => {
+          const normalizedInclude = normalizeString(includeBrand);
+          return normalizedTitle.includes(normalizedInclude);
+        });
+        if (!isIncluded) return false;
+      }
+
+      return true;
+    });
   }
 
-  const normalizeString = (str: string): string => {
-    if (!str) return '';
-    let normalized = str
-      .replace(/İ/g, 'i')
-      .replace(/I/g, 'ı')
-      .toLowerCase()
-      .trim();
-    normalized = normalized
-      .replace(/ı/g, 'i')
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ş/g, 's')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c');
-    return normalized;
-  };
-
-  return products.filter((product) => {
-    const normalizedTitle = normalizeString(product.title);
-
-    if (excludeBrands.length > 0) {
-      const isExcluded = excludeBrands.some((excludeBrand) => {
-        const normalizedExclude = normalizeString(excludeBrand);
-        return normalizedTitle.includes(normalizedExclude);
-      });
-      if (isExcluded) return false;
+  private calculateDeliveryFee(subtotal: number, market?: Market): number {
+    if (!market) {
+      return subtotal > 200 ? 0 : 20;
     }
 
-    if (includeBrands.length > 0) {
-      const isIncluded = includeBrands.some((includeBrand) => {
-        const normalizedInclude = normalizeString(includeBrand);
-        return normalizedTitle.includes(normalizedInclude);
-      });
-      if (!isIncluded) return false;
+    const minOrder = market.min_order_amount
+      ? parseFloat(market.min_order_amount.toString())
+      : 0;
+    if (minOrder > 0 && subtotal < minOrder) {
+      return 999;
     }
 
-    return true;
-  });
-}
+    const freeThreshold = market.free_delivery_threshold
+      ? parseFloat(market.free_delivery_threshold.toString())
+      : null;
 
-  private calculateDeliveryFee(subtotal: number, market ?: Market): number {
-  if (!market) {
+    if (freeThreshold !== null) {
+      if (subtotal >= freeThreshold) {
+        return 0;
+      }
+      return 20;
+    }
+
     return subtotal > 200 ? 0 : 20;
   }
-
-  const minOrder = market.min_order_amount
-    ? parseFloat(market.min_order_amount.toString())
-    : 0;
-  if (minOrder > 0 && subtotal < minOrder) {
-    return 999;
-  }
-
-  const freeThreshold = market.free_delivery_threshold
-    ? parseFloat(market.free_delivery_threshold.toString())
-    : null;
-
-  if (freeThreshold !== null) {
-    if (subtotal >= freeThreshold) {
-      return 0;
-    }
-    return 20;
-  }
-
-  return subtotal > 200 ? 0 : 20;
-}
 
   /**
    * Tüm marketlerin basit listesini döner (id + name)
    * Market filtreleme için kullanılır.
    * Cached for 30 minutes for better performance.
    */
-  async getAllMarkets(): Promise < { id: number; name: string }[] > {
-  // Check cache
-  if(
-    this.marketsCache &&
+  async getAllMarkets(): Promise<{ id: number; name: string }[]> {
+    // Check cache
+    if (
+      this.marketsCache &&
       Date.now() - this.marketsCache.timestamp < this.MARKETS_CACHE_TTL
     ) {
-  return this.marketsCache.data;
-}
+      return this.marketsCache.data;
+    }
 
-// Fetch from database
-const markets = await this.marketRepo.find({
-  order: { name: 'ASC' },
-});
+    // Fetch from database
+    const markets = await this.marketRepo.find({
+      order: { name: 'ASC' },
+    });
 
-// Filter out duplicate market names
-// - "Sok" (should be "Şok" with Turkish character)
-// - "Macrocenter" (should be "Macro Center" with space)
-// This prevents duplicate markets in the market filter
-const result = markets
-  .filter((m) => m.name !== 'Sok' && m.name !== 'Macrocenter') // Remove duplicates
-  .map((m) => ({
-    id: m.id,
-    name: m.name,
-  }));
+    // Filter out duplicate market names
+    // - "Sok" (should be "Şok" with Turkish character)
+    // - "Macrocenter" (should be "Macro Center" with space)
+    // This prevents duplicate markets in the market filter
+    const result = markets
+      .filter((m) => m.name !== 'Sok' && m.name !== 'Macrocenter') // Remove duplicates
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+      }));
 
-// Update cache
-this.marketsCache = {
-  data: result,
-  timestamp: Date.now(),
-};
+    // Update cache
+    this.marketsCache = {
+      data: result,
+      timestamp: Date.now(),
+    };
 
-return result;
+    return result;
   }
 
-  async compareProductPrices(productId: number): Promise < {
-  productId: number;
-  productTitle: string;
-  markets: {
-    marketName: string;
-    title: string;
-    price: number;
-    priceCard: number | null;
-    property: string | null;
-    url: string | null;
-    imageUrl: string | null;
-    effectivePrice: number;
-  }[];
-  cheapest: {
-    marketName: string;
-    price: number;
-  } | null;
-} > {
-  const product = await this.productRepo.findOne({
-    where: { id: productId },
-  });
+  async compareProductPrices(productId: number): Promise<{
+    productId: number;
+    productTitle: string;
+    markets: {
+      marketName: string;
+      title: string;
+      price: number;
+      priceCard: number | null;
+      property: string | null;
+      url: string | null;
+      imageUrl: string | null;
+      effectivePrice: number;
+    }[];
+    cheapest: {
+      marketName: string;
+      price: number;
+    } | null;
+  }> {
+    const product = await this.productRepo.findOne({
+      where: { id: productId },
+    });
 
-  if(!product) {
-    throw new Error(`Product ${productId} not found`);
-  }
+    if (!product) {
+      throw new Error(`Product ${productId} not found`);
+    }
 
     const marketProducts = await this.marketProductRepo.find({
-    where: { product_master_id: productId, in_stock: true },
-    relations: ['market'],
-  });
+      where: { product_master_id: productId, in_stock: true },
+      relations: ['market'],
+    });
 
-  const markets = marketProducts.map((mp) => {
-    const effectivePrice = mp.price_card
-      ? parseFloat(mp.price_card.toString())
-      : parseFloat(mp.price.toString());
+    const markets = marketProducts.map((mp) => {
+      const effectivePrice = mp.price_card
+        ? parseFloat(mp.price_card.toString())
+        : parseFloat(mp.price.toString());
+      return {
+        marketName: mp.market.name,
+        title: mp.title,
+        price: parseFloat(mp.price.toString()),
+        priceCard: mp.price_card ? parseFloat(mp.price_card.toString()) : null,
+        property: mp.property,
+        url: mp.url,
+        imageUrl: mp.image_url,
+        effectivePrice,
+      };
+    });
+
+    markets.sort((a, b) => a.effectivePrice - b.effectivePrice);
+
+    const cheapest =
+      markets.length > 0
+        ? {
+          marketName: markets[0].marketName,
+          price: markets[0].effectivePrice,
+        }
+        : null;
+
     return {
-      marketName: mp.market.name,
-      title: mp.title,
-      price: parseFloat(mp.price.toString()),
-      priceCard: mp.price_card ? parseFloat(mp.price_card.toString()) : null,
-      property: mp.property,
-      url: mp.url,
-      imageUrl: mp.image_url,
-      effectivePrice,
+      productId: product.id,
+      productTitle: product.canonical_title,
+      markets,
+      cheapest,
     };
-  });
-
-  markets.sort((a, b) => a.effectivePrice - b.effectivePrice);
-
-  const cheapest =
-    markets.length > 0
-      ? {
-        marketName: markets[0].marketName,
-        price: markets[0].effectivePrice,
-      }
-      : null;
-
-  return {
-    productId: product.id,
-    productTitle: product.canonical_title,
-    markets,
-    cheapest,
-  };
-}
+  }
 }
