@@ -130,12 +130,15 @@ export class OptimizationService {
         // If market filter is applied, skip Product search and go directly to fallback search
         // This is because matchingService.searchProducts() doesn't know about market filter
         // and might return products that don't exist in the selected market
-        if (allowedMarkets.length === 0) {
-          // Search for products matching the query (only if no market filter)
-          const products = await this.matchingService.searchProducts(item.query, 5);
+        // Always search for products matching the query first (even with market filter)
+        // This allows us to find products by their canonical title or fuzzy matching,
+        // which is much better than the fallback regex search (handles Turkish characters correctly)
+        // matchingService.searchProducts() returns potential matching Products
+        const products = await this.matchingService.searchProducts(item.query, 5);
 
-          if (products.length > 0) {
+        if (products.length > 0) {
             // Get all MarketProducts for matched products
+            // If market filter is active, buildMarketProductQuery() will apply it
             const productIds = products.map((p) => p.id);
             const queryBuilder = buildMarketProductQuery();
             candidates = await queryBuilder
@@ -143,7 +146,7 @@ export class OptimizationService {
               .getMany();
 
             this.logger.debug(
-              `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}" via Product search`,
+              `[Optimization] Found ${candidates.length} MarketProducts for query "${item.query}" via Product search (Markets: ${allowedMarkets.join(', ') || 'All'})`,
             );
             if (candidates.length > 0) {
               const sampleProducts = candidates.slice(0, 5).map(c => `"${c.title}" (${c.market?.name})`).join(', ');
@@ -151,10 +154,9 @@ export class OptimizationService {
                 `[Optimization] Sample MarketProducts: ${sampleProducts}`,
               );
             }
-          }
         } else {
-          this.logger.debug(
-            `[Optimization] Market filter applied, skipping Product search and using direct MarketProduct search`,
+             this.logger.debug(
+            `[Optimization] No products found in master list for "${item.query}", proceeding to fallback search`,
           );
         }
 
