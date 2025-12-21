@@ -57,11 +57,11 @@ export class SearchService implements OnModuleInit {
                 searchableAttributes: ['canonical_title', 'category'],
                 filterableAttributes: ['category'],
                 sortableAttributes: ['id'],
-                // MeiliSearch handles Turkish characters automatically (normalization),
-                // but we disable typo tolerance explicitly as requested for precision.
                 typoTolerance: {
                     enabled: false
-                }
+                },
+                // Preserve Turkish characters - prevent ü→u, ş→s normalization
+                dictionary: ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü', 'Ç', 'Ğ', 'İ', 'Ö', 'Ş', 'Ü']
             });
 
             // Create or update Market Products Index
@@ -72,7 +72,9 @@ export class SearchService implements OnModuleInit {
                 sortableAttributes: ['price', 'updated_at'],
                 typoTolerance: {
                     enabled: false
-                }
+                },
+                // Preserve Turkish characters - prevent ü→u, ş→s normalization
+                dictionary: ['ç', 'ğ', 'ı', 'ö', 'ş', 'ü', 'Ç', 'Ğ', 'İ', 'Ö', 'Ş', 'Ü']
             });
 
             this.logger.log('MeiliSearch indexes initialized.');
