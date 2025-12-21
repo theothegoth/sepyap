@@ -9,6 +9,7 @@ import { MatchingService } from '../matching/matching.service';
 export interface CartItem {
   query?: string; // Product name search query (e.g., "Süt")
   productId?: number; // Product ID (preferred, more accurate)
+  productTitle?: string; // Product title (when selected from autocomplete)
   quantity: number;
 }
 
@@ -513,8 +514,8 @@ export class OptimizationService {
         }
 
         if (!candidateForMarket) {
-          // Track missing item
-          const itemName = item.query || item.productId?.toString() || 'Unknown';
+          // Track missing item - use productTitle if available, otherwise query or productId
+          const itemName = item.productTitle || item.query || `Product #${item.productId}` || 'Unknown';
           if (!missingItems.includes(itemName)) {
             missingItems.push(itemName);
           }
