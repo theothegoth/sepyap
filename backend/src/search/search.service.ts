@@ -57,12 +57,10 @@ export class SearchService implements OnModuleInit {
                 searchableAttributes: ['canonical_title', 'category'],
                 filterableAttributes: ['category'],
                 sortableAttributes: ['id'],
-                // MeiliSearch handles Turkish characters and typos automatically
+                // MeiliSearch handles Turkish characters automatically (normalization),
+                // but we disable typo tolerance explicitly as requested for precision.
                 typoTolerance: {
-                    minWordSizeForTypos: {
-                        oneTypo: 4, // Words shorter than 4 chars must be exact (prevents "süt" -> "şut")
-                        twoTypos: 8
-                    }
+                    enabled: false
                 }
             });
 
@@ -72,6 +70,9 @@ export class SearchService implements OnModuleInit {
                 searchableAttributes: ['title', 'market_name'],
                 filterableAttributes: ['market_name', 'product_master_id'],
                 sortableAttributes: ['price', 'updated_at'],
+                typoTolerance: {
+                    enabled: false
+                }
             });
 
             this.logger.log('MeiliSearch indexes initialized.');
