@@ -581,8 +581,19 @@ function CartContent() {
                               className="flex justify-between items-start text-gray-900 dark:text-gray-100"
                             >
                               <div className="flex-1">
-                                <span>
+                                <span className="flex items-center gap-1">
                                   {item.quantity}x {item.name}
+                                  {item.product?.url && (
+                                    <a
+                                      href={item.product.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                      title="Ürün sayfasına git"
+                                    >
+                                      🔗
+                                    </a>
+                                  )}
                                 </span>
                                 {item.product?.property && (
                                   <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
@@ -633,6 +644,12 @@ function CartContent() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                    <div className="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-1">
+                      <span>ℹ️</span>
+                      <span>Ürün linkleri son güncelleme tarihine aittir. Fiyat ve stok durumu değişmiş olabilir.</span>
+                    </div>
                   </div>
 
                   {result.alternatives && result.alternatives.length > 0 && (
