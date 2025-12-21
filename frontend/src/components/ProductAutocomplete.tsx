@@ -39,7 +39,7 @@ export default function ProductAutocomplete({ onSelect, onEnter, placeholder = "
             setLoading(true);
             try {
                 const response = await api.searchProducts(debouncedQuery, 8);
-                setSuggestions(response.data || []);
+                setSuggestions(response.data.products || []);
                 setIsOpen(true);
             } catch (error) {
                 console.error("Failed to fetch suggestions:", error);
