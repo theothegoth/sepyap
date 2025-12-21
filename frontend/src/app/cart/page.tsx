@@ -9,6 +9,7 @@ import ExtensionRequiredModal from '../../components/ExtensionRequiredModal';
 import BrandPreferencesManager from '../../components/BrandPreferencesManager';
 import { useBrandPreferences } from '../../hooks/useBrandPreferences';
 import StructuredData from '../../components/StructuredData';
+import ProductAutocomplete from '../../components/ProductAutocomplete';
 
 function CartContent() {
   const searchParams = useSearchParams();
@@ -115,12 +116,22 @@ function CartContent() {
     }
   };
 
-  const addItem = useCallback(() => {
-    if (!newItem) return;
-    setCart((prevCart) => [...prevCart, { query: newItem, quantity }]);
-    setNewItem('');
+  const addItem = useCallback((query: string) => {
+    if (!query) return;
+    setCart((prevCart) => [...prevCart, { query, quantity }]);
     setQuantity(1);
-  }, [newItem, quantity]);
+  }, [quantity]);
+
+  const handleProductSelect = useCallback((product: { id: number; title: string; image?: string }) => {
+    setCart((prevCart) => [
+      ...prevCart,
+      {
+        productId: product.id,
+        productTitle: product.title,
+        quantity: 1,
+      },
+    ]);
+  }, []);
 
   const handleAddProductById = useCallback(async (productId: number) => {
     try {
@@ -262,24 +273,23 @@ function CartContent() {
                   </Link>
                 </p>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Ürün Adı (örn. Süt)"
-                    className="input flex-1"
-                    value={newItem}
-                    onChange={(e) => setNewItem(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addItem()}
+                  <ProductAutocomplete
+                    onSelect={handleProductSelect}
+                    onEnter={addItem}
+                    className="flex-1"
+                    placeholder="Ürün ara veya ekle (örn: Süt)"
                   />
-                  <input
-                    type="number"
-                    min="1"
-                    className="input w-20"
+                  <select
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
-                  />
-                  <button onClick={addItem} className="btn-primary">
-                    Ekle
-                  </button>
+                    onChange={(e) => setQuantity(parseInt(e.target.value))}
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    {[1, 2, 3, 4, 5, 10].map((n) => (
+                      <option key={n} value={n}>
+                        {n}x
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
