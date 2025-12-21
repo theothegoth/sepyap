@@ -58,6 +58,12 @@ export class SearchService implements OnModuleInit {
                 filterableAttributes: ['category'],
                 sortableAttributes: ['id'],
                 // MeiliSearch handles Turkish characters and typos automatically
+                typoTolerance: {
+                    minWordSizeForTypos: {
+                        oneTypo: 4, // Words shorter than 4 chars must be exact (prevents "süt" -> "şut")
+                        twoTypos: 8
+                    }
+                }
             });
 
             // Create or update Market Products Index
