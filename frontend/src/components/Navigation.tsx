@@ -28,7 +28,7 @@ const Navigation = memo(function Navigation() {
               <img
                 src="/icon_192_safe.png"
                 alt="SepYap Logo"
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-lg p-0.5 bg-green-500/10"
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-lg bg-green-500/5 group-hover:scale-110 transition-transform"
               />
               <span className="bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">
                 SepYap
@@ -41,8 +41,8 @@ const Navigation = memo(function Navigation() {
                 href="/cart"
                 prefetch={true}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname === '/cart'
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
                 Sepet
@@ -51,8 +51,8 @@ const Navigation = memo(function Navigation() {
                 href="/search"
                 prefetch={true}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isSearch
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
                 Ürün Ara
@@ -61,8 +61,8 @@ const Navigation = memo(function Navigation() {
                 href="/watchlist"
                 prefetch={true}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isWatchlist
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
                 İzleme Listesi
@@ -71,8 +71,8 @@ const Navigation = memo(function Navigation() {
                 href="/alerts"
                 prefetch={true}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isAlerts
-                    ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
               >
                 Uyarılar
@@ -93,8 +93,8 @@ const Navigation = memo(function Navigation() {
               href="/cart"
               prefetch={true}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${pathname === '/cart'
-                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               Sepet
@@ -103,8 +103,8 @@ const Navigation = memo(function Navigation() {
               href="/search"
               prefetch={true}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${isSearch
-                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               Ürün Ara
@@ -113,8 +113,8 @@ const Navigation = memo(function Navigation() {
               href="/watchlist"
               prefetch={true}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${isWatchlist
-                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               İzleme Listesi
@@ -123,8 +123,8 @@ const Navigation = memo(function Navigation() {
               href="/alerts"
               prefetch={true}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${isAlerts
-                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               Uyarılar
