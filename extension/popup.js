@@ -4,12 +4,12 @@
 async function initConsentToggle() {
   const toggle = document.getElementById('consentToggle');
   const scanBtn = document.getElementById('scanBtn');
-  
+
   // Check current consent status
   try {
     const consent = await chrome.storage.local.get('dataCollectionConsent');
     const hasConsent = consent.dataCollectionConsent === true;
-    
+
     // Update toggle UI
     if (hasConsent) {
       toggle.classList.add('active');
@@ -18,18 +18,18 @@ async function initConsentToggle() {
       toggle.classList.remove('active');
       scanBtn.disabled = true;
     }
-    
+
     // Toggle click handler
     toggle.addEventListener('click', async () => {
       const newConsent = !hasConsent;
-      
+
       try {
         await chrome.storage.local.set({
           dataCollectionConsent: newConsent,
           consentVersion: 1,
           consentDate: new Date().toISOString()
         });
-        
+
         // Update UI
         if (newConsent) {
           toggle.classList.add('active');
@@ -71,19 +71,19 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
     updateStatus('Error checking consent.', 'error');
     return;
   }
-  
+
   updateStatus('Scanning product page...', '');
-  
+
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     // Send message to content script to trigger scan
     chrome.tabs.sendMessage(tab.id, { action: 'captureProducts' }, (response) => {
       if (chrome.runtime.lastError) {
         updateStatus('Error: ' + chrome.runtime.lastError.message, 'error');
         return;
       }
-      
+
       if (response && response.status === 'success') {
         updateStatus(`✓ Scanned ${response.productCount} product(s)`, 'success');
       } else if (response && response.status === 'error') {
@@ -101,14 +101,14 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
 // Privacy policy link
 document.getElementById('privacyLink').addEventListener('click', (e) => {
   e.preventDefault();
-  chrome.tabs.create({ url: 'https://github.com/your-repo/privacy-policy' }); // Update with actual privacy policy URL
+  chrome.tabs.create({ url: 'https://sepyap.com/privacy' });
 });
 
 // Get current page product info
 async function loadCurrentProduct() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     // Send message to content script to get current product
     chrome.tabs.sendMessage(tab.id, { action: 'getCurrentProduct' }, (response) => {
       if (chrome.runtime.lastError) {
@@ -116,18 +116,18 @@ async function loadCurrentProduct() {
         document.getElementById('productInfo').style.display = 'none';
         return;
       }
-      
+
       if (response && response.product) {
         const product = response.product;
         const productInfo = document.getElementById('productInfo');
         const productTitle = document.getElementById('productTitle');
         const productPrice = document.getElementById('productPrice');
-        
+
         productTitle.textContent = product.title || 'Product';
         productPrice.textContent = product.price ? `${product.price} TL` : '';
-        
+
         productInfo.style.display = 'block';
-        
+
         // Store product info for buttons
         window.currentProduct = product;
       } else {
@@ -142,19 +142,19 @@ async function loadCurrentProduct() {
 // Compare prices button
 document.getElementById('compareBtn').addEventListener('click', async () => {
   if (!window.currentProduct) return;
-  
+
   // Open web app search page
-  const searchUrl = 'http://localhost:3000/search?q=' + encodeURIComponent(window.currentProduct.title);
+  const searchUrl = 'https://sepyap.com/search?q=' + encodeURIComponent(window.currentProduct.title);
   chrome.tabs.create({ url: searchUrl });
 });
 
 // Watch button
 document.getElementById('watchBtn').addEventListener('click', async () => {
   if (!window.currentProduct) return;
-  
+
   // For now, just open watchlist page
   // In future, could directly add to watchlist via API
-  chrome.tabs.create({ url: 'http://localhost:3000/watchlist' });
+  chrome.tabs.create({ url: 'https://sepyap.com/watchlist' });
 });
 
 // Initialize on load
