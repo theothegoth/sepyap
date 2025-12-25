@@ -170,24 +170,33 @@ export default function LandingPage() {
         </section>
 
         {/* Privacy & Security */}
-        <section className="py-16 sm:py-24 bg-white dark:bg-gray-800">
+        <section className="py-16 sm:py-24 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-gray-900 dark:text-gray-100">
-              Gizlilik ve Güvenlik
+              Gizlilik ve Şeffaflık
             </h2>
             <h3 className="text-2xl font-semibold text-center mb-6 text-green-600 dark:text-green-400">
-              Verileriniz Güvende
+              Veri Toplama Bildirimi
             </h3>
             <p className="text-lg text-center mb-8 text-gray-600 dark:text-gray-400">
-              Sadece ürün fiyatlarını topluyoruz. Kişisel bilgileriniz asla toplanmaz veya saklanmaz.
+              Hizmetimizi sunabilmek için Chrome uzantımız market sitelerindeki <strong>ürün adlarını ve fiyatlarını</strong> toplar. Kişisel hiçbir veriniz toplanmaz.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
               {privacyPoints.map((point: string, idx: number) => (
-                <div key={idx} className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div key={idx} className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-transparent hover:border-green-200 dark:hover:border-green-900 transition-colors">
                   <div className="text-green-600 dark:text-green-400 text-xl mt-0.5">✓</div>
                   <p className="text-gray-700 dark:text-gray-300">{point}</p>
                 </div>
               ))}
+            </div>
+            <div className="text-center">
+              <Link
+                href="/privacy"
+                className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold hover:underline"
+              >
+                <span>Tam Gizlilik Politikasını Oku</span>
+                <span>→</span>
+              </Link>
             </div>
           </div>
         </section>
