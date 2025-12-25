@@ -31,6 +31,19 @@ export class IngestService {
     private searchService: SearchService,
   ) { }
 
+  /**
+   * Market isimlerini normalize eder.
+   * "Sok" -> "Şok"
+   * "Macrocenter" -> "Macro Center"
+   */
+  private normalizeMarketName(name: string | undefined): string {
+    if (!name) return 'Unknown';
+    const normalized = name.trim();
+    if (normalized.toLowerCase() === 'sok') return 'Şok';
+    if (normalized.toLowerCase() === 'macrocenter') return 'Macro Center';
+    return normalized;
+  }
+
   async processIngestedProducts(items: any[]): Promise<any> {
     let savedCount = 0;
     let createdCount = 0;
@@ -115,7 +128,8 @@ export class IngestService {
 
   // Get or create market with caching
   private async getOrCreateMarket(marketName: string, transactionalEntityManager?: any): Promise<Market> {
-    const cacheKey = marketName.toLowerCase();
+    const normalizedName = this.normalizeMarketName(marketName);
+    const cacheKey = normalizedName.toLowerCase();
     const now = Date.now();
 
     // Check cache
@@ -130,13 +144,13 @@ export class IngestService {
     const repo = transactionalEntityManager?.getRepository(Market) || this.marketRepo;
     let market = await repo
       .createQueryBuilder('market')
-      .where('LOWER(market.name) = LOWER(:name)', { name: marketName })
+      .where('LOWER(market.name) = LOWER(:name)', { name: normalizedName })
       .getOne();
 
     if (!market) {
       // Create new market
       market = repo.create({
-        name: marketName,
+        name: normalizedName,
         base_url: '', // Will be updated if product_url is available
         delivery_regions: ['TR'],
         min_order_amount: 0
