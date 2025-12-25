@@ -73,6 +73,19 @@ export class OptimizationService {
   }
 
   /**
+   * Market isimlerini normalize eder.
+   * "Sok" -> "Şok"
+   * "Macrocenter" -> "Macro Center"
+   */
+  private normalizeMarketName(name: string | undefined): string {
+    if (!name) return 'Unknown';
+    const normalized = name.trim();
+    if (normalized === 'Sok') return 'Şok';
+    if (normalized === 'Macrocenter') return 'Macro Center';
+    return normalized;
+  }
+
+  /**
    * Find cheapest cart - Enhanced version using Product matching
    * Supports both Product ID (preferred) and query string (fallback)
    * 
@@ -263,8 +276,9 @@ export class OptimizationService {
 
       // Track markets that have at least one candidate (for alternatives)
       for (const c of candidates) {
-        if (c.market?.name) {
-          allMarkets.add(c.market.name);
+        const normalizedMarket = this.normalizeMarketName(c.market?.name);
+        if (normalizedMarket) {
+          allMarkets.add(normalizedMarket);
         }
       }
 
@@ -446,9 +460,11 @@ export class OptimizationService {
     );
 
     for (const marketName of allMarkets) {
+      // Normalize allowedMarkets for comparison
+      const normalizedAllowed = allowedMarkets.map((m) => this.normalizeMarketName(m).toLowerCase());
+
       if (allowedMarkets.length > 0) {
-        const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
-        if (!normalizedAllowed.includes(marketName.trim().toLowerCase())) {
+        if (!normalizedAllowed.includes(marketName.toLowerCase())) {
           this.logger.log(
             `[Optimization] Alternative cart: Skipping market "${marketName}" - not in allowedMarkets`,
           );
@@ -481,7 +497,8 @@ export class OptimizationService {
 
           // Try to find a candidate for this market that matches query words
           for (const candidate of candidates) {
-            if (candidate.market?.name === marketName) {
+            const candidateMarketName = this.normalizeMarketName(candidate.market?.name);
+            if (candidateMarketName === marketName) {
               const candidateTitle = this.normalizeString(candidate.title);
               const allWordsMatch = queryWords.every(word => candidateTitle.includes(word));
 
@@ -509,7 +526,7 @@ export class OptimizationService {
         } else {
           // For productId-based items, just find first candidate for this market
           candidateForMarket = candidates.find(
-            (c) => c.market?.name === marketName,
+            (c) => this.normalizeMarketName(c.market?.name) === marketName,
           );
         }
 
