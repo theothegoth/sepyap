@@ -96,10 +96,15 @@ export default function SearchPage() {
     // Set new timer for debounced search
     const timer = setTimeout(async () => {
       // Check if extension is installed
-      if (!isExtensionInstalled) {
+      if (isExtensionInstalled === false) {
         setShowExtensionModal(true);
         setProducts([]);
         setLoading(false);
+        return;
+      }
+
+      // If still determining, don't search yet
+      if (isExtensionInstalled === null) {
         return;
       }
 

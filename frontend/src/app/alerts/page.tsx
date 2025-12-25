@@ -32,10 +32,10 @@ function AlertsContent() {
 
   useEffect(() => {
     // Check extension before loading
-    if (isExtensionInstalled) {
+    if (isExtensionInstalled === true) {
       loadAlerts();
       loadStats();
-    } else {
+    } else if (isExtensionInstalled === false) {
       setShowExtensionModal(true);
       setLoading(false);
     }

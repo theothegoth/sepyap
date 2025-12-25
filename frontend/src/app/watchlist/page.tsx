@@ -31,9 +31,9 @@ export default function WatchlistPage() {
 
   useEffect(() => {
     // Check extension before loading
-    if (isExtensionInstalled) {
+    if (isExtensionInstalled === true) {
       loadWatchlist();
-    } else {
+    } else if (isExtensionInstalled === false) {
       setShowExtensionModal(true);
       setLoading(false);
     }
