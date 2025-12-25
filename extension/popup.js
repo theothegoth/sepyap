@@ -34,20 +34,20 @@ async function initConsentToggle() {
         if (newConsent) {
           toggle.classList.add('active');
           scanBtn.disabled = false;
-          updateStatus('Data collection enabled. Prices will be tracked.', 'success');
+          updateStatus('Veri toplama etkinleştirildi. Fiyatlar takip edilecek.', 'success');
         } else {
           toggle.classList.remove('active');
           scanBtn.disabled = true;
-          updateStatus('Data collection disabled.', 'error');
+          updateStatus('Veri toplama devre dışı bırakıldı.', 'error');
         }
       } catch (error) {
         console.error('Error updating consent:', error);
-        updateStatus('Error updating consent.', 'error');
+        updateStatus('Onay güncellenirken hata oluştu.', 'error');
       }
     });
   } catch (error) {
     console.error('Error checking consent:', error);
-    updateStatus('Error loading consent status.', 'error');
+    updateStatus('Onay durumu yüklenirken hata oluştu.', 'error');
   }
 }
 
@@ -64,15 +64,15 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
   try {
     const consent = await chrome.storage.local.get('dataCollectionConsent');
     if (!consent.dataCollectionConsent) {
-      updateStatus('Please enable data collection first.', 'error');
+      updateStatus('Lütfen önce veri toplamayı etkinleştirin.', 'error');
       return;
     }
   } catch (error) {
-    updateStatus('Error checking consent.', 'error');
+    updateStatus('Onay kontrol edilirken hata oluştu.', 'error');
     return;
   }
 
-  updateStatus('Scanning product page...', '');
+  updateStatus('Ürün sayfası taranıyor...', '');
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -80,16 +80,16 @@ document.getElementById('scanBtn').addEventListener('click', async () => {
     // Send message to content script to trigger scan
     chrome.tabs.sendMessage(tab.id, { action: 'captureProducts' }, (response) => {
       if (chrome.runtime.lastError) {
-        updateStatus('Error: ' + chrome.runtime.lastError.message, 'error');
+        updateStatus('Hata: ' + chrome.runtime.lastError.message, 'error');
         return;
       }
 
       if (response && response.status === 'success') {
-        updateStatus(`✓ Scanned ${response.productCount} product(s)`, 'success');
+        updateStatus(`✓ ${response.productCount} ürün tarandı`, 'success');
       } else if (response && response.status === 'error') {
-        updateStatus('Error: ' + (response.message || 'Unknown error'), 'error');
+        updateStatus('Hata: ' + (response.message || 'Unknown error'), 'error');
       } else {
-        updateStatus('No product found on this page.', 'error');
+        updateStatus('Bu sayfada ürün bulunamadı.', 'error');
       }
     });
   } catch (error) {
@@ -123,7 +123,7 @@ async function loadCurrentProduct() {
         const productTitle = document.getElementById('productTitle');
         const productPrice = document.getElementById('productPrice');
 
-        productTitle.textContent = product.title || 'Product';
+        productTitle.textContent = product.title || 'Ürün';
         productPrice.textContent = product.price ? `${product.price} TL` : '';
 
         productInfo.style.display = 'block';
