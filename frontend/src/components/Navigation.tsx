@@ -26,7 +26,7 @@ const Navigation = memo(function Navigation() {
               aria-label="SepYap Home"
             >
               <img
-                src="/icon_192_safe.png"
+                src="/icon_192_safe_krp.png"
                 alt="SepYap Logo"
                 className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-lg bg-green-500/5 group-hover:scale-110 transition-transform"
               />
