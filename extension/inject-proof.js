@@ -53,6 +53,8 @@
               window['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
               document['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
               document['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
+              // Logging the primary name for verification
+              console.log('[SepYap] Extension proof injected');
             } catch(e) {}
           })();
         `;

@@ -145,6 +145,7 @@ export function useExtensionCheck() {
         clearInterval(slowInterval);
       }
       if (typeof window !== 'undefined') {
+        window.removeEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
         window.removeEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
       }
     };

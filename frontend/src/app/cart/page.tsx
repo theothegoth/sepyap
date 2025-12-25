@@ -76,6 +76,8 @@ function CartContent() {
           localStorage.removeItem('sepyap_admin_enabled');
           localStorage.removeItem('groceryMatcher_admin_token');
           localStorage.removeItem('groceryMatcher_admin_enabled');
+          localStorage.removeItem('sepyap_admin_token');
+          localStorage.removeItem('sepyap_admin_enabled');
         }
       }
     };

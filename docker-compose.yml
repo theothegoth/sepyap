@@ -27,7 +27,7 @@ services:
       DB_HOST: postgres
       DB_USER: ${DB_USER:-admin}
       DB_PASSWORD: ${DB_PASSWORD:-password}
-      DB_NAME: ${DB_NAME:-grocery_matcher}
+      DB_NAME: ${DB_NAME:-sepyap}
       ADMIN_SECRET: ${ADMIN_SECRET:-change-this-secret-key}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3001,http://127.0.0.1:3001}
     ports:
