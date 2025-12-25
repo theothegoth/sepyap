@@ -31,9 +31,7 @@
         "https://*.a101.com.tr/*",
         "https://*.sokmarket.com.tr/*",
         "https://*.happycenter.com.tr/*",
-        "https://*.macrocenter.com.tr/*",
-        "https://*.trendyol.com/*",
-        "https://*.yemeksepeti.com/*"
+        "https://*.macrocenter.com.tr/*"
       ],
       "js": [
         "parsers/base.js",

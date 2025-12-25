@@ -20,31 +20,29 @@ function getMarketName() {
   if (hostname.includes('sokmarket')) return 'Sok';
   if (hostname.includes('happycenter')) return 'Happy Center';
   if (hostname.includes('macrocenter')) return 'Macrocenter';
-  if (hostname.includes('trendyol')) return 'Trendyol';
-  if (hostname.includes('yemeksepeti')) return 'Yemeksepeti';
   return 'Unknown';
 }
 
 // Make getParser available globally
-window.getParser = function() {
+window.getParser = function () {
   const marketName = getMarketName();
   const parserClassName = parserMap[marketName];
-  
+
   if (!parserClassName) {
-    
-    
+
+
     return null;
   }
-  
+
   // Lazy lookup - get the parser class from window when needed
   const ParserClass = window[parserClassName];
-  
+
   if (!ParserClass) {
-    
-    
+
+
     return null;
   }
-  
+
   try {
     return new ParserClass();
   } catch (error) {
