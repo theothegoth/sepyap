@@ -491,17 +491,21 @@ export class MatchingService {
     const productIds = products.map(p => p.id);
     const normalizedAllowedMarkets = allowedMarkets.map(m => m.toLowerCase());
 
+    this.logger.debug(`[Search] Applying market filter for ${productIds.length} products. Markets: ${allowedMarkets.join(', ')}`);
+
     // Find product IDs that have market products in the allowed markets
-    const validProductIds = await this.marketProductRepo
+    const validProductIdsRaw = await this.marketProductRepo
       .createQueryBuilder('mp')
       .leftJoin('mp.market', 'market')
-      .select('mp.product_master_id')
+      .select('DISTINCT mp.product_master_id', 'product_master_id')
       .where('mp.product_master_id IN (:...productIds)', { productIds })
       .andWhere('LOWER(market.name) IN (:...markets)', { markets: normalizedAllowedMarkets })
-      .groupBy('mp.product_master_id')
       .getRawMany();
 
-    const resultIds = new Set(validProductIds.map(v => v.product_master_id));
+    // extract IDs, handling potential driver variations in naming (though alias 'product_master_id' should hold)
+    const resultIds = new Set(validProductIdsRaw.map(v => v.product_master_id || v.mp_product_master_id).filter(id => id !== null));
+
+    this.logger.debug(`[Search] Filtered ${products.length} down to ${resultIds.size} products based on market availability.`);
 
     // Preserve original order and filter
     return products.filter(p => resultIds.has(p.id));

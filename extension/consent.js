@@ -12,20 +12,20 @@ const CURRENT_CONSENT_VERSION = 1;
 async function hasConsent() {
   try {
     const result = await chrome.storage.local.get([CONSENT_KEY, CONSENT_VERSION_KEY]);
-    
+
     // If no consent stored, return false
     if (!result[CONSENT_KEY]) {
       return false;
     }
-    
+
     // If consent version is outdated, require re-consent
     if (result[CONSENT_VERSION_KEY] !== CURRENT_CONSENT_VERSION) {
       return false;
     }
-    
+
     return result[CONSENT_KEY] === true;
   } catch (error) {
-    console.error('[GroceryMatcher] Error checking consent:', error);
+    console.error('[SepYap] Error checking consent:', error);
     return false; // Default to no consent on error
   }
 }
@@ -42,9 +42,9 @@ async function setConsent(consent) {
       [CONSENT_VERSION_KEY]: CURRENT_CONSENT_VERSION,
       consentDate: new Date().toISOString()
     });
-    
+
   } catch (error) {
-    console.error('[GroceryMatcher] Error setting consent:', error);
+    console.error('[SepYap] Error setting consent:', error);
     throw error;
   }
 }
@@ -62,11 +62,13 @@ function getConsentSync() {
 
 // Make functions available globally
 if (typeof window !== 'undefined') {
-  window.GroceryMatcherConsent = {
+  window.SepYapConsent = {
     hasConsent,
     setConsent,
     getConsentSync
   };
+  // Legacy support
+  window.GroceryMatcherConsent = window.SepYapConsent;
 }
 
 // Export for use in other scripts

@@ -7,9 +7,20 @@ interface ProductAutocompleteProps {
     onEnter: (query: string) => void;
     placeholder?: string;
     className?: string;
+    allowedMarkets?: string[];
+    includeBrands?: string[];
+    excludeBrands?: string[];
 }
 
-export default function ProductAutocomplete({ onSelect, onEnter, placeholder = "Ürün ara...", className = "" }: ProductAutocompleteProps) {
+export default function ProductAutocomplete({
+    onSelect,
+    onEnter,
+    placeholder = "Ürün ara...",
+    className = "",
+    allowedMarkets = [],
+    includeBrands = [],
+    excludeBrands = [],
+}: ProductAutocompleteProps) {
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [isOpen, setIsOpen] = useState(false);
@@ -38,7 +49,14 @@ export default function ProductAutocomplete({ onSelect, onEnter, placeholder = "
 
             setLoading(true);
             try {
-                const response = await api.searchProducts(debouncedQuery, 50, [], [], true);
+                const response = await api.searchProducts(
+                    debouncedQuery,
+                    50,
+                    includeBrands.length > 0 ? includeBrands : undefined,
+                    excludeBrands.length > 0 ? excludeBrands : undefined,
+                    true, // strict
+                    allowedMarkets.length > 0 ? allowedMarkets : undefined
+                );
                 setSuggestions(response.data.products || []);
                 setIsOpen(true);
             } catch (error) {
@@ -49,7 +67,7 @@ export default function ProductAutocomplete({ onSelect, onEnter, placeholder = "
         }
 
         fetchSuggestions();
-    }, [debouncedQuery]);
+    }, [debouncedQuery, allowedMarkets, includeBrands, excludeBrands]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {

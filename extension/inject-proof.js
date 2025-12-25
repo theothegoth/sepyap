@@ -5,117 +5,79 @@
   'use strict';
 
   // Set a proof that the extension is installed
-  // Use a unique identifier that's hard to fake
-  const PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
+  const PROOF_KEY = '__SEPYAP_EXTENSION_PROOF__';
+  const LEGACY_PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
   const PROOF_VALUE = {
     installed: true,
-    version: '1.0.0',
+    version: '1.2.0',
     timestamp: Date.now(),
+    signature: 'sepyap-extension-v1'
+  };
+  const LEGACY_PROOF_VALUE = {
+    ...PROOF_VALUE,
     signature: 'grocery-matcher-extension-v1'
   };
 
   // Function to inject proof
   function injectProof() {
     try {
-      // Set the proof in window object (main world)
-      // Use Object.defineProperty to ensure it's not configurable and persists
-      try {
-        Object.defineProperty(window, PROOF_KEY, {
-          value: PROOF_VALUE,
-          writable: true,
-          configurable: true,
-          enumerable: true
-        });
-      } catch (e) {
-        // Fallback to direct assignment
-        window[PROOF_KEY] = PROOF_VALUE;
-      }
-
-      // Also set it on document for early access
-      if (typeof document !== 'undefined') {
+      // Set the proof in window object
+      const setProof = (obj, key, val) => {
         try {
-          Object.defineProperty(document, PROOF_KEY, {
-            value: PROOF_VALUE,
+          Object.defineProperty(obj, key, {
+            value: val,
             writable: true,
             configurable: true,
             enumerable: true
           });
         } catch (e) {
-          document[PROOF_KEY] = PROOF_VALUE;
+          obj[key] = val;
         }
+      };
+
+      setProof(window, PROOF_KEY, PROOF_VALUE);
+      setProof(window, LEGACY_PROOF_KEY, LEGACY_PROOF_VALUE);
+
+      if (typeof document !== 'undefined') {
+        setProof(document, PROOF_KEY, PROOF_VALUE);
+        setProof(document, LEGACY_PROOF_KEY, LEGACY_PROOF_VALUE);
       }
 
-      // Also set it in the page's actual window (not isolated world)
-      // This is a workaround for content script isolation
-      // Use a more CSP-friendly approach: set properties directly instead of inline script
+      // CSP-friendly script injection fallback
       try {
-        // Try to access the page's window object directly
-        const pageWindow = window;
-        if (pageWindow) {
-          try {
-            Object.defineProperty(pageWindow, PROOF_KEY, {
-              value: PROOF_VALUE,
-              writable: true,
-              configurable: true,
-              enumerable: true
-            });
-          } catch (e) {
-            pageWindow[PROOF_KEY] = PROOF_VALUE;
-          }
-        }
-      } catch (e) {
-        // Fallback: Use script injection only if direct access fails
-        // This will still trigger CSP warnings but is a last resort
-        try {
-          const script = document.createElement('script');
-          script.textContent = `
-            (function() {
-              try {
-                window['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
-                document['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
-              } catch(e) {
-              }
-            })();
-          `;
-          (document.head || document.documentElement).appendChild(script);
-          script.remove();
-        } catch (scriptError) {
-        }
-      }
+        const script = document.createElement('script');
+        script.textContent = `
+          (function() {
+            try {
+              window['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
+              window['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
+              document['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
+              document['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
+            } catch(e) {}
+          })();
+        `;
+        (document.head || document.documentElement).appendChild(script);
+        script.remove();
+      } catch (e) { }
 
-      // Dispatch a custom event for the website to listen to
-      if (typeof window !== 'undefined' && window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent('groceryMatcherExtensionInstalled', {
-          detail: PROOF_VALUE,
-          bubbles: true,
-          cancelable: true
-        }));
-      }
+      // Dispatch custom events
+      const dispatch = (name) => {
+        window.dispatchEvent(new CustomEvent(name, { detail: PROOF_VALUE }));
+        document.dispatchEvent(new CustomEvent(name, { detail: PROOF_VALUE }));
+      };
 
-      // Also dispatch on document
-      if (typeof document !== 'undefined' && document.dispatchEvent) {
-        document.dispatchEvent(new CustomEvent('groceryMatcherExtensionInstalled', {
-          detail: PROOF_VALUE,
-          bubbles: true,
-          cancelable: true
-        }));
-      }
+      dispatch('sepyapExtensionInstalled');
+      dispatch('groceryMatcherExtensionInstalled');
 
-      // Mark as injected to avoid duplicate injection
-      if (!window.__GROCERY_MATCHER_EXTENSION_PROOF_INJECTED__) {
-        window.__GROCERY_MATCHER_EXTENSION_PROOF_INJECTED__ = true;
-      }
+      // Listen for pings
+      const onPing = () => {
+        dispatch('sepyapExtensionInstalled');
+        dispatch('groceryMatcherExtensionInstalled');
+      };
 
-      // Add a listener for the website to ask if the extension is there
-      window.addEventListener('groceryMatcherPing', () => {
-        window.dispatchEvent(new CustomEvent('groceryMatcherExtensionInstalled', {
-          detail: PROOF_VALUE,
-          bubbles: true,
-          cancelable: true
-        }));
-      });
-    } catch (e) {
-    }
+      window.addEventListener('sepyapPing', onPing);
+      window.addEventListener('groceryMatcherPing', onPing);
+    } catch (e) { }
   }
 
   // Inject immediately if DOM is ready

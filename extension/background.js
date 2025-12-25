@@ -5,7 +5,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'sendProductsToBackend') {
-    console.log(`[GroceryMatcher Background] Received ${request.products.length} products to send`);
+    console.log(`[SepYap Background] Received ${request.products.length} products to send`);
 
     const market = request.products[0]?.market || 'Unknown';
     // Backend supports up to 2000 products per batch, but we use smaller batches to avoid timeout
@@ -65,11 +65,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const RETRY_DELAY = 2000; // 2 seconds
 
       try {
-        console.log(`[GroceryMatcher Background] Sending batch ${batchIndex + 1}/${batches.length} (${batch.length} products) to ${backendUrl}${retryCount > 0 ? ` (retry ${retryCount}/${MAX_RETRIES})` : ''}`);
+        console.log(`[SepYap Background] Sending batch ${batchIndex + 1}/${batches.length} (${batch.length} products) to ${backendUrl}${retryCount > 0 ? ` (retry ${retryCount}/${MAX_RETRIES})` : ''}`);
 
         // Log first product in batch for debugging
         if (batch.length > 0) {
-          console.log(`[GroceryMatcher Background] First product in batch:`, JSON.stringify(batch[0], null, 2));
+          console.log(`[SepYap Background] First product in batch:`, JSON.stringify(batch[0], null, 2));
         }
 
         // Create AbortController for timeout (10 minutes for large batches)
@@ -77,7 +77,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes
 
         // Log request details before sending
-        console.log(`[GroceryMatcher Background] Request details:`, {
+        console.log(`[SepYap Background] Request details:`, {
           url: backendUrl,
           method: 'POST',
           origin: 'chrome-extension://' + chrome.runtime.id,
@@ -101,7 +101,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!response.ok) {
           // Retry on 504 Gateway Timeout or 503 Service Unavailable
           if ((response.status === 504 || response.status === 503) && retryCount < MAX_RETRIES) {
-            console.warn(`[GroceryMatcher Background] Batch ${batchIndex + 1} failed with ${response.status}, retrying in ${RETRY_DELAY}ms...`);
+            console.warn(`[SepYap Background] Batch ${batchIndex + 1} failed with ${response.status}, retrying in ${RETRY_DELAY}ms...`);
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1))); // Exponential backoff
             return sendBatch(batchIndex, retryCount + 1);
           }
@@ -111,10 +111,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const data = await response.json();
 
         // Log full response for debugging
-        console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} response:`, JSON.stringify(data, null, 2));
+        console.log(`[SepYap Background] Batch ${batchIndex + 1} response:`, JSON.stringify(data, null, 2));
 
         // Log response structure for debugging
-        console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} response structure:`, {
+        console.log(`[SepYap Background] Batch ${batchIndex + 1} response structure:`, {
           hasResult: !!data.result,
           hasSuccess: !!data.success,
           resultKeys: data.result ? Object.keys(data.result) : [],
@@ -127,7 +127,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const updated = data.result.updatedCount || data.result.updated || 0;
           const errors = data.result.errors || 0;
 
-          console.log(`[GroceryMatcher Background] Batch ${batchIndex + 1} parsed: created=${created}, updated=${updated}, errors=${errors}`);
+          console.log(`[SepYap Background] Batch ${batchIndex + 1} parsed: created=${created}, updated=${updated}, errors=${errors}`);
 
           totalCreated += created;
           totalUpdated += updated;
@@ -135,14 +135,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
           // Log error details if any
           if (errors > 0 && data.result.errorDetails) {
-            console.error(`[GroceryMatcher Background] Batch ${batchIndex + 1} errors:`, data.result.errorDetails);
+            console.error(`[SepYap Background] Batch ${batchIndex + 1} errors:`, data.result.errorDetails);
           }
         } else if (data.error || data.message) {
-          console.error(`[GroceryMatcher Background] Batch ${batchIndex + 1} error response:`, data);
+          console.error(`[SepYap Background] Batch ${batchIndex + 1} error response:`, data);
           totalErrors += batch.length;
         } else {
           // No result and no error - this shouldn't happen
-          console.warn(`[GroceryMatcher Background] Batch ${batchIndex + 1} unexpected response format:`, data);
+          console.warn(`[SepYap Background] Batch ${batchIndex + 1} unexpected response format:`, data);
           totalErrors += batch.length;
         }
 

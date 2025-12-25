@@ -47,10 +47,15 @@ function CartContent() {
           const res = await api.checkAdmin(decodedParam);
           if (res.data.valid) {
             setIsAdmin(true);
-            localStorage.setItem('groceryMatcher_admin_token', res.data.token);
-            localStorage.setItem('groceryMatcher_admin_enabled', 'true');
+            localStorage.setItem('sepyap_admin_token', res.data.token);
+            localStorage.setItem('sepyap_admin_enabled', 'true');
+            // Cleanup legacy
+            localStorage.removeItem('groceryMatcher_admin_token');
+            localStorage.removeItem('groceryMatcher_admin_enabled');
           } else {
             setIsAdmin(false);
+            localStorage.removeItem('sepyap_admin_token');
+            localStorage.removeItem('sepyap_admin_enabled');
             localStorage.removeItem('groceryMatcher_admin_token');
             localStorage.removeItem('groceryMatcher_admin_enabled');
           }
@@ -58,14 +63,17 @@ function CartContent() {
           setIsAdmin(false);
         }
       } else {
-        // Check stored token
-        const storedToken = localStorage.getItem('groceryMatcher_admin_token');
-        const storedEnabled = localStorage.getItem('groceryMatcher_admin_enabled');
-        if (storedToken && storedEnabled === 'true') {
-          // Token exists, assume valid (backend validation happens on first check)
+        // Check stored token (both new and legacy)
+        const storedToken = localStorage.getItem('sepyap_admin_token') || localStorage.getItem('groceryMatcher_admin_token');
+        const storedEnabled = localStorage.getItem('sepyap_admin_enabled') === 'true' || localStorage.getItem('groceryMatcher_admin_enabled') === 'true';
+
+        if (storedToken && storedEnabled) {
+          // Token exists, assume valid
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
+          localStorage.removeItem('sepyap_admin_token');
+          localStorage.removeItem('sepyap_admin_enabled');
           localStorage.removeItem('groceryMatcher_admin_token');
           localStorage.removeItem('groceryMatcher_admin_enabled');
         }
@@ -278,6 +286,9 @@ function CartContent() {
                     onEnter={addItem}
                     className="flex-1"
                     placeholder="Ürün ara veya ekle (örn: Süt)"
+                    allowedMarkets={allowedMarkets}
+                    includeBrands={selectedBrands}
+                    excludeBrands={excludedBrands}
                   />
                   <select
                     value={quantity}

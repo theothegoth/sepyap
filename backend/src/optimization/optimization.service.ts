@@ -111,16 +111,26 @@ export class OptimizationService {
 
       // Strategy 1: Use Product ID if provided (most accurate)
       if (item.productId) {
-        candidates = await this.marketProductRepo
+        let queryBuilder = this.marketProductRepo
           .createQueryBuilder('mp')
           .leftJoinAndSelect('mp.market', 'market')
           .leftJoinAndSelect('mp.product', 'product')
           .where('mp.product_master_id = :productId', { productId: item.productId })
-          .andWhere('mp.in_stock = true')
-          .getMany();
+          .andWhere('mp.in_stock = true');
+
+        // Apply market filter if specified
+        if (allowedMarkets.length > 0) {
+          const normalizedAllowed = allowedMarkets.map((m) => m.trim().toLowerCase());
+          queryBuilder = queryBuilder.andWhere(
+            'LOWER(TRIM(market.name)) IN (:...allowedMarkets)',
+            { allowedMarkets: normalizedAllowed },
+          );
+        }
+
+        candidates = await queryBuilder.getMany();
 
         this.logger.debug(
-          `[Optimization] Found ${candidates.length} MarketProducts for Product ID ${item.productId}`,
+          `[Optimization] Found ${candidates.length} MarketProducts for Product ID ${item.productId} (Markets: ${allowedMarkets.join(', ') || 'All'})`,
         );
       }
 

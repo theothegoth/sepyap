@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SepYap",
   "version": "1.2",
-  "description": "Automatically finds the cheapest grocery cart across multiple Turkish markets.",
+  "description": "SepYap ile en ucuz sepeti bulun across multiple Turkish markets.",
   "icons": {
     "16": "icons/icon_16.png",
     "32": "icons/icon_32.png",

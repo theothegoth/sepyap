@@ -51,13 +51,13 @@ function extractProducts() {
           debugStats.failed++;
         }
       } catch (error) {
-        console.error(`[GroceryMatcher] Error extracting product from card:`, error);
+        console.error(`[SepYap] Error extracting product from card:`, error);
         debugStats.failed++;
       }
     }
     
     // Log extraction stats
-    console.log(`[GroceryMatcher] Extraction complete:`, {
+    console.log(`[SepYap] Extraction complete:`, {
       totalCards: cards.length,
       successful: debugStats.success,
       failed: debugStats.failed,
@@ -66,18 +66,18 @@ function extractProducts() {
     
     // Log first few products for debugging (with full structure)
     if (products.length > 0) {
-      console.log(`[GroceryMatcher] Sample products:`, products.slice(0, 3).map(p => ({
+      console.log(`[SepYap] Sample products:`, products.slice(0, 3).map(p => ({
         title: p.title?.substring(0, 50),
         price: p.price,
         url: p.product_url?.substring(0, 60)
       })));
       // Log full structure of first product for debugging
-      console.log(`[GroceryMatcher] Full structure of first product:`, JSON.stringify(products[0], null, 2));
+      console.log(`[SepYap] Full structure of first product:`, JSON.stringify(products[0], null, 2));
     }
 
     return products;
   } catch (error) {
-    console.error(`[GroceryMatcher] Error during extraction:`, error);
+    console.error(`[SepYap] Error during extraction:`, error);
     return [];
   }
 }
@@ -100,19 +100,19 @@ async function sendData(products) {
       return;
     }
   } catch (error) {
-    console.error('[GroceryMatcher] Error checking consent:', error);
+    console.error('[SepYap] Error checking consent:', error);
     return; // Don't send data if consent check fails
   }
 
   // Normalize to array if single product
   const productsArray = Array.isArray(products) ? products : [products];
   
-  console.log(`[GroceryMatcher] Sending ${productsArray.length} products to backend...`);
+  console.log(`[SepYap] Sending ${productsArray.length} products to backend...`);
   
   // Check if extension context is still valid before sending message
   if (!chrome.runtime?.id) {
     const error = new Error('Extension context invalidated');
-    console.warn('[GroceryMatcher] Extension context invalidated, cannot send products');
+    console.warn('[SepYap] Extension context invalidated, cannot send products');
     return Promise.reject(error);
   }
   
@@ -125,16 +125,16 @@ async function sendData(products) {
       if (chrome.runtime.lastError) {
         // Handle "Extension context invalidated" error gracefully
         if (chrome.runtime.lastError.message && chrome.runtime.lastError.message.includes('Extension context invalidated')) {
-          console.warn('[GroceryMatcher] Extension context invalidated, please reload the page');
+          console.warn('[SepYap] Extension context invalidated, please reload the page');
         } else {
-          console.error('[GroceryMatcher] Runtime error:', chrome.runtime.lastError);
+          console.error('[SepYap] Runtime error:', chrome.runtime.lastError);
         }
         reject(chrome.runtime.lastError);
         return;
       }
       
       if (response && response.status === 'success') {
-        console.log(`[GroceryMatcher] Successfully sent to backend:`, {
+        console.log(`[SepYap] Successfully sent to backend:`, {
           created: response.data?.created || 0,
           updated: response.data?.updated || 0,
           errors: response.data?.errors || 0,
@@ -142,7 +142,7 @@ async function sendData(products) {
         });
         resolve(response);
       } else {
-        console.error('[GroceryMatcher] Failed to send:', response);
+        console.error('[SepYap] Failed to send:', response);
         reject(new Error(response?.message || 'Unknown error'));
       }
     });
@@ -155,7 +155,7 @@ async function sendData(products) {
 async function runScan() {
   // Prevent multiple simultaneous scans
   if (isScanning) {
-    console.log(`[GroceryMatcher] Scan already in progress, skipping...`);
+    console.log(`[SepYap] Scan already in progress, skipping...`);
     return;
   }
   
@@ -163,7 +163,7 @@ async function runScan() {
   try {
     // Check if extension context is still valid
     if (!chrome.runtime?.id) {
-      console.warn('[GroceryMatcher] Extension context invalidated, skipping scan');
+      console.warn('[SepYap] Extension context invalidated, skipping scan');
       return;
     }
     
@@ -175,10 +175,10 @@ async function runScan() {
   } catch (error) {
     // Handle "Extension context invalidated" error gracefully
     if (error.message && error.message.includes('Extension context invalidated')) {
-      console.warn('[GroceryMatcher] Extension context invalidated, please reload the page');
+      console.warn('[SepYap] Extension context invalidated, please reload the page');
       return;
     }
-    console.error('[GroceryMatcher] Error checking consent:', error);
+    console.error('[SepYap] Error checking consent:', error);
     return;
   }
 
@@ -195,14 +195,14 @@ async function runScan() {
   isScanning = true; // Set flag to prevent concurrent scans
   
   try {
-    console.log(`[GroceryMatcher] Starting scan...`);
+    console.log(`[SepYap] Starting scan...`);
     
     // Extract products
     const products = extractProducts();
     if (products.length > 0) {
       await sendData(products);
     } else {
-      console.log(`[GroceryMatcher] No products found on this page`);
+      console.log(`[SepYap] No products found on this page`);
     }
   } finally {
     isScanning = false; // Reset flag when scan completes
@@ -275,7 +275,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         sendResponse({ product: null });
       }
     } catch (error) {
-      console.error('[GroceryMatcher] Error getting current product:', error);
+      console.error('[SepYap] Error getting current product:', error);
       sendResponse({ product: null });
     }
   }

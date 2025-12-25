@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
-const PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
+const PROOF_KEY = '__SEPYAP_EXTENSION_PROOF__';
+const LEGACY_PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
 
 export default function ExtensionLock({ children }: { children: React.ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -11,16 +12,20 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
   useEffect(() => {
     // Check for extension proof
     const checkExtension = () => {
-      // Check if proof exists in window object
+      // Check if proof exists in window object (both new and legacy)
       const proof = (window as any)[PROOF_KEY];
-      
-      if (proof && proof.installed === true && proof.signature === 'grocery-matcher-extension-v1') {
+      const legacyProof = (window as any)[LEGACY_PROOF_KEY];
+
+      const finalProof = proof || legacyProof;
+
+      if (finalProof && finalProof.installed === true &&
+        (finalProof.signature === 'sepyap-extension-v1' || finalProof.signature === 'grocery-matcher-extension-v1')) {
         setIsUnlocked(true);
         setChecking(false);
         return;
       }
 
-      // Also listen for the custom event
+      // Also listen for custom events
       const handleExtensionInstalled = (event: any) => {
         if (event.detail && event.detail.installed === true) {
           setIsUnlocked(true);
@@ -28,20 +33,23 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
         }
       };
 
+      window.addEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
       window.addEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
 
       // Check again after a short delay (extension might inject after page load)
       const timeout = setTimeout(() => {
-        const proofAfterDelay = (window as any)[PROOF_KEY];
+        const proofAfterDelay = (window as any)[PROOF_KEY] || (window as any)[LEGACY_PROOF_KEY];
         if (proofAfterDelay && proofAfterDelay.installed === true) {
           setIsUnlocked(true);
         }
         setChecking(false);
+        window.removeEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
         window.removeEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
-      }, 1000);
+      }, 2000);
 
       return () => {
         clearTimeout(timeout);
+        window.removeEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
         window.removeEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
       };
     };
@@ -73,7 +81,7 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
               Bu sayfayı kullanmak için SepYap Chrome eklentisini yüklemeniz gerekiyor.
             </p>
           </div>
-          
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
             <h3 className="font-semibold text-blue-900 mb-2">Kurulum Adımları</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
@@ -87,10 +95,10 @@ export default function ExtensionLock({ children }: { children: React.ReactNode 
             <h3 className="font-semibold text-yellow-900 mb-2 text-sm">🔍 Debug: Check Extension</h3>
             <p className="text-xs text-yellow-800 mb-2">Open browser console (F12) and type:</p>
             <code className="block bg-yellow-100 p-2 rounded text-xs font-mono break-all">
-              window.__GROCERY_MATCHER_EXTENSION_PROOF__
+              window.__SEPYAP_EXTENSION_PROOF__
             </code>
             <p className="text-xs text-yellow-800 mt-2">
-              If you see an object → Extension is working!<br/>
+              If you see an object → Extension is working!<br />
               If you see "undefined" → Extension not detected
             </p>
             <p className="text-xs text-yellow-800 mt-2">

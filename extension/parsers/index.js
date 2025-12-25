@@ -46,7 +46,7 @@ window.getParser = function () {
   try {
     return new ParserClass();
   } catch (error) {
-    console.error(`[GroceryMatcher] Error creating parser for ${marketName}:`, error);
+    console.error(`[SepYap] Error creating parser for ${marketName}:`, error);
     return null;
   }
 };

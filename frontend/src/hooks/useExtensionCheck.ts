@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
-const STORAGE_KEY = '__GROCERY_MATCHER_EXTENSION_DETECTED__';
+const PROOF_KEY = '__SEPYAP_EXTENSION_PROOF__';
+const LEGACY_PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
+const STORAGE_KEY = '__SEPYAP_EXTENSION_DETECTED__';
 
 export function useExtensionCheck() {
   const [isExtensionInstalled, setIsExtensionInstalled] = useState<boolean | null>(null);
@@ -34,14 +35,17 @@ export function useExtensionCheck() {
       // sessionStorage might not be available
     }
 
-    // Check window object
+    // Check window object (both new and legacy)
     const proof = (window as any)[PROOF_KEY];
+    const legacyProof = (window as any)[LEGACY_PROOF_KEY];
 
     // Also check document object as fallback
     const docProof = typeof document !== 'undefined' ? (document as any)[PROOF_KEY] : null;
+    const legacyDocProof = typeof document !== 'undefined' ? (document as any)[LEGACY_PROOF_KEY] : null;
 
-    const finalProof = proof || docProof;
-    const hasExtension = finalProof && finalProof.installed === true && finalProof.signature === 'grocery-matcher-extension-v1';
+    const finalProof = proof || docProof || legacyProof || legacyDocProof;
+    const hasExtension = finalProof && finalProof.installed === true &&
+      (finalProof.signature === 'sepyap-extension-v1' || finalProof.signature === 'grocery-matcher-extension-v1');
 
     if (hasExtension) {
       extensionDetectedRef.current = true;
@@ -83,9 +87,8 @@ export function useExtensionCheck() {
     // Initial check
     checkExtension();
 
-    // Listen for extension installation event
+    // Listen for extension installation event (both new and legacy)
     const handleExtensionInstalled = (event: any) => {
-      // console.log('Extension detection event received:', event.detail);
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
         setIsExtensionInstalled(true);
@@ -100,11 +103,13 @@ export function useExtensionCheck() {
       }
     };
 
+    window.addEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
     window.addEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
 
     // Send a ping to ask if the extension is there
     const sendPing = () => {
       if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sepyapPing'));
         window.dispatchEvent(new CustomEvent('groceryMatcherPing'));
       }
     };
