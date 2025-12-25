@@ -13,7 +13,7 @@ import ProductAutocomplete from '../../components/ProductAutocomplete';
 
 function CartContent() {
   const searchParams = useSearchParams();
-  const { checkExtension } = useExtensionCheck();
+  const { isExtensionInstalled, checkExtension } = useExtensionCheck();
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [newItem, setNewItem] = useState('');

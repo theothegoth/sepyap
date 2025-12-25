@@ -36,13 +36,13 @@ export function useExtensionCheck() {
 
     // Check window object
     const proof = (window as any)[PROOF_KEY];
-    
+
     // Also check document object as fallback
     const docProof = typeof document !== 'undefined' ? (document as any)[PROOF_KEY] : null;
-    
+
     const finalProof = proof || docProof;
     const hasExtension = finalProof && finalProof.installed === true && finalProof.signature === 'grocery-matcher-extension-v1';
-    
+
     if (hasExtension) {
       extensionDetectedRef.current = true;
       // Store in sessionStorage for persistence
@@ -54,10 +54,10 @@ export function useExtensionCheck() {
         // Ignore storage errors
       }
     }
-    
+
     setIsExtensionInstalled(hasExtension);
-    
-    
+
+
     return hasExtension || extensionDetectedRef.current;
   };
 
@@ -85,6 +85,7 @@ export function useExtensionCheck() {
 
     // Listen for extension installation event
     const handleExtensionInstalled = (event: any) => {
+      // console.log('Extension detection event received:', event.detail);
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
         setIsExtensionInstalled(true);
@@ -101,6 +102,16 @@ export function useExtensionCheck() {
 
     window.addEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
 
+    // Send a ping to ask if the extension is there
+    const sendPing = () => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('groceryMatcherPing'));
+      }
+    };
+
+    // Send initial ping
+    sendPing();
+
     // More frequent checks initially, then less frequent
     let checkCount = 0;
     let slowInterval: NodeJS.Timeout | null = null;
@@ -108,6 +119,7 @@ export function useExtensionCheck() {
       // Only check if we haven't detected it yet
       if (!extensionDetectedRef.current) {
         checkExtension();
+        sendPing(); // Also re-send ping
       }
       checkCount++;
       // After 10 seconds, reduce frequency to every 3 seconds
@@ -116,6 +128,7 @@ export function useExtensionCheck() {
         slowInterval = setInterval(() => {
           if (!extensionDetectedRef.current) {
             checkExtension();
+            sendPing();
           }
         }, 3000);
       }

@@ -12,14 +12,14 @@ const privacyPoints = [
 ];
 
 export default function LandingPage() {
-  const { checkExtension } = useExtensionCheck();
-  const [hasExtension, setHasExtension] = useState(false);
+  const { isExtensionInstalled, checkExtension } = useExtensionCheck();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setHasExtension(checkExtension());
-  }, [checkExtension]);
+  }, []);
+
+  const hasExtension = isExtensionInstalled;
 
   return (
     <>
