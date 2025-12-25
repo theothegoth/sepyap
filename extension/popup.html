@@ -1,32 +1,51 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <style>
-    body { 
-      width: 320px; 
-      padding: 16px; 
+    body {
+      width: 320px;
+      padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
       font-size: 14px;
     }
-    h3 { 
-      margin: 0 0 12px 0; 
-      font-size: 18px;
-      color: #333;
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
     }
+
+    .header img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      color: #10b981;
+      font-weight: 700;
+    }
+
     .consent-section {
       background: #f5f5f5;
       padding: 12px;
       border-radius: 8px;
       margin-bottom: 12px;
     }
+
     .consent-toggle {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 8px;
     }
+
     .toggle-switch {
       position: relative;
       width: 44px;
@@ -36,9 +55,11 @@
       cursor: pointer;
       transition: background 0.3s;
     }
+
     .toggle-switch.active {
       background: #4CAF50;
     }
+
     .toggle-switch::after {
       content: '';
       position: absolute;
@@ -50,62 +71,74 @@
       left: 2px;
       transition: left 0.3s;
     }
+
     .toggle-switch.active::after {
       left: 22px;
     }
+
     .consent-text {
       font-size: 12px;
       color: #666;
       line-height: 1.4;
       margin-top: 8px;
     }
+
     .consent-text a {
       color: #4CAF50;
       text-decoration: none;
     }
+
     .consent-text a:hover {
       text-decoration: underline;
     }
-    button { 
-      width: 100%; 
-      padding: 10px; 
-      margin-bottom: 8px; 
-      cursor: pointer; 
-      background: #4CAF50; 
-      color: white; 
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
       border: none;
       border-radius: 6px;
       font-size: 14px;
       font-weight: 500;
     }
+
     button:hover {
       background: #45a049;
     }
+
     button:disabled {
       background: #ccc;
       cursor: not-allowed;
     }
-    #status { 
-      font-size: 12px; 
-      margin-top: 8px; 
+
+    #status {
+      font-size: 12px;
+      margin-top: 8px;
       color: #666;
       padding: 8px;
       background: #f9f9f9;
       border-radius: 4px;
       min-height: 20px;
     }
+
     .status-success {
       color: #4CAF50;
     }
+
     .status-error {
       color: #f44336;
     }
+
     .info-text {
       font-size: 11px;
       color: #999;
       margin-top: 8px;
       line-height: 1.4;
     }
+
     .product-info {
       background: #f9f9f9;
       border: 1px solid #e0e0e0;
@@ -113,25 +146,30 @@
       padding: 12px;
       margin-bottom: 12px;
     }
+
     .product-header {
       margin-bottom: 8px;
     }
+
     .product-title {
       font-size: 14px;
       font-weight: 600;
       color: #333;
       margin: 0 0 4px 0;
     }
+
     .product-price {
       font-size: 16px;
       font-weight: bold;
       color: #4CAF50;
     }
+
     .product-actions {
       display: flex;
       gap: 6px;
       margin-top: 8px;
     }
+
     .action-btn {
       flex: 1;
       padding: 6px 8px;
@@ -141,34 +179,41 @@
       cursor: pointer;
       font-weight: 500;
     }
+
     .action-btn:not(.secondary) {
       background: #4CAF50;
       color: white;
     }
+
     .action-btn.secondary {
       background: #2196F3;
       color: white;
     }
+
     .action-btn:hover {
       opacity: 0.9;
     }
   </style>
 </head>
+
 <body>
-  <h3>🛒 Grocery Matcher</h3>
-  
+  <div class="header">
+    <img src="icons/icon_48.png" alt="SepYap">
+    <h3>SepYap</h3>
+  </div>
+
   <div class="consent-section">
     <div class="consent-toggle">
       <span style="font-weight: 500;">Data Collection</span>
       <div id="consentToggle" class="toggle-switch"></div>
     </div>
     <div class="consent-text">
-      We collect product prices when you visit grocery store pages. 
+      We collect product prices when you visit grocery store pages.
       You can disable this anytime.
       <a href="#" id="privacyLink">Privacy Policy</a>
     </div>
   </div>
-  
+
   <!-- Current Product Info -->
   <div id="productInfo" class="product-info" style="display: none;">
     <div class="product-header">
@@ -186,9 +231,9 @@
   <div class="info-text">
     ℹ️ Enable data collection above to start tracking prices. Works on all grocery store pages.
   </div>
-  
+
   <script src="consent.js"></script>
   <script src="popup.js"></script>
 </body>
-</html>
 
+</html>

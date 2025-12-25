@@ -19,58 +19,61 @@ const Navigation = memo(function Navigation() {
         <div className="flex justify-between items-center h-16">
           {/* Left: Logo/Home */}
           <div className="flex items-center gap-4">
-            <Link 
-              href="/" 
-              className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-2xl sm:text-3xl font-bold hover:opacity-80 transition-opacity group"
               prefetch={true}
               aria-label="SepYap Home"
             >
-              SepYap
+              <img
+                src="/icon_192_safe.png"
+                alt="SepYap Logo"
+                className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-lg p-0.5 bg-green-500/10"
+              />
+              <span className="bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent">
+                SepYap
+              </span>
             </Link>
-            
+
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-1 ml-4">
               <Link
                 href="/cart"
                 prefetch={true}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === '/cart'
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname === '/cart'
                     ? 'bg-blue-600 dark:bg-blue-500 text-white'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 Sepet
               </Link>
               <Link
                 href="/search"
                 prefetch={true}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isSearch
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isSearch
                     ? 'bg-blue-600 dark:bg-blue-500 text-white'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 Ürün Ara
               </Link>
               <Link
                 href="/watchlist"
                 prefetch={true}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isWatchlist
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isWatchlist
                     ? 'bg-blue-600 dark:bg-blue-500 text-white'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 İzleme Listesi
               </Link>
               <Link
                 href="/alerts"
                 prefetch={true}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isAlerts
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isAlerts
                     ? 'bg-blue-600 dark:bg-blue-500 text-white'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 Uyarılar
               </Link>
@@ -89,44 +92,40 @@ const Navigation = memo(function Navigation() {
             <Link
               href="/cart"
               prefetch={true}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
-                pathname === '/cart'
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${pathname === '/cart'
                   ? 'bg-blue-600 dark:bg-blue-500 text-white'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+                }`}
             >
               Sepet
             </Link>
             <Link
               href="/search"
               prefetch={true}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
-                isSearch
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${isSearch
                   ? 'bg-blue-600 dark:bg-blue-500 text-white'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+                }`}
             >
               Ürün Ara
             </Link>
             <Link
               href="/watchlist"
               prefetch={true}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
-                isWatchlist
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${isWatchlist
                   ? 'bg-blue-600 dark:bg-blue-500 text-white'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+                }`}
             >
               İzleme Listesi
             </Link>
             <Link
               href="/alerts"
               prefetch={true}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${
-                isAlerts
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium text-center transition-colors ${isAlerts
                   ? 'bg-blue-600 dark:bg-blue-500 text-white'
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+                }`}
             >
               Uyarılar
             </Link>

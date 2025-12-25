@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     telephone: false,
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'),
+  icons: {
+    icon: '/icon_192_safe.png',
+    apple: '/icon_192_safe.png',
+  },
   alternates: {
     canonical: '/',
   },
