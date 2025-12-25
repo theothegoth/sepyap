@@ -263,7 +263,8 @@ export class MatchingService {
     limit: number = 20,
     includeBrands: string[] = [],
     excludeBrands: string[] = [],
-    strict: boolean = false
+    strict: boolean = false,
+    allowedMarkets: string[] = []
   ): Promise<Product[]> {
     if (!query || query.trim().length === 0) {
       return [];
@@ -313,13 +314,16 @@ export class MatchingService {
     // Apply brand filters
     results = this.applyBrandFilters(results, includeBrands, excludeBrands);
 
+    // Apply market filters
+    results = await this.applyMarketFilters(results, allowedMarkets);
+
     this.logger.debug(`[Search] Found ${results.length} results from MeiliSearch.`);
 
     // Fallback: If no results, try the legacy regex search on market_products (slow but safe fallback)
     if (results.length === 0) {
       this.logger.debug(`[Search] No MeiliSearch results, trying legacy fallback on market_products`);
       const normalizedQuery = this.normalizeString(query);
-      results = await this.searchMarketProductsAndCreate(normalizedQuery, limit, includeBrands, excludeBrands);
+      results = await this.searchMarketProductsAndCreate(normalizedQuery, limit, includeBrands, excludeBrands, allowedMarkets);
     }
 
     return results;
@@ -333,12 +337,18 @@ export class MatchingService {
     normalizedQuery: string,
     limit: number,
     includeBrands: string[] = [],
-    excludeBrands: string[] = []
+    excludeBrands: string[] = [],
+    allowedMarkets: string[] = []
   ): Promise<Product[]> {
-    const marketProducts = await this.marketProductRepo.find({
-      relations: ['market'],
-      take: 2000 // Limit to avoid memory issues
-    });
+    const queryBuilder = this.marketProductRepo.createQueryBuilder('mp')
+      .leftJoinAndSelect('mp.market', 'market');
+
+    if (allowedMarkets.length > 0) {
+      const normalizedAllowedMarkets = allowedMarkets.map(m => m.toLowerCase());
+      queryBuilder.andWhere('LOWER(market.name) IN (:...markets)', { markets: normalizedAllowedMarkets });
+    }
+
+    const marketProducts = await queryBuilder.take(2000).getMany();
 
     this.logger.debug(`[Search] Found ${marketProducts.length} market_products to search`);
 
@@ -464,6 +474,37 @@ export class MatchingService {
 
       return true;
     });
+  }
+
+  /**
+   * Apply market filters to product results
+   * Only returns products that have at least one market product in the allowed markets
+   */
+  private async applyMarketFilters(
+    products: Product[],
+    allowedMarkets: string[]
+  ): Promise<Product[]> {
+    if (allowedMarkets.length === 0 || products.length === 0) {
+      return products;
+    }
+
+    const productIds = products.map(p => p.id);
+    const normalizedAllowedMarkets = allowedMarkets.map(m => m.toLowerCase());
+
+    // Find product IDs that have market products in the allowed markets
+    const validProductIds = await this.marketProductRepo
+      .createQueryBuilder('mp')
+      .leftJoin('mp.market', 'market')
+      .select('mp.product_master_id')
+      .where('mp.product_master_id IN (:...productIds)', { productIds })
+      .andWhere('LOWER(market.name) IN (:...markets)', { markets: normalizedAllowedMarkets })
+      .groupBy('mp.product_master_id')
+      .getRawMany();
+
+    const resultIds = new Set(validProductIds.map(v => v.product_master_id));
+
+    // Preserve original order and filter
+    return products.filter(p => resultIds.has(p.id));
   }
 }
 

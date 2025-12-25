@@ -22,7 +22,7 @@ export class AlertsService {
     @InjectRepository(Product)
     private productRepo: Repository<Product>,
     private priceHistoryService: PriceHistoryService,
-  ) {}
+  ) { }
 
   /**
    * Add a product to user's watchlist
@@ -193,9 +193,6 @@ export class AlertsService {
     );
   }
 
-  /**
-   * Get alert statistics for user
-   */
   async getAlertStats(userId: string): Promise<{
     total: number;
     unread: number;
@@ -214,6 +211,26 @@ export class AlertsService {
     });
 
     return { total, unread, dismissed };
+  }
+
+  /**
+   * Mark all alerts as read for user
+   */
+  async markAllAlertsAsRead(userId: string): Promise<void> {
+    await this.alertRepo.update(
+      { user_id: userId, is_dismissed: false },
+      { is_read: true }
+    );
+  }
+
+  /**
+   * Dismiss all alerts for user
+   */
+  async dismissAllAlerts(userId: string): Promise<void> {
+    await this.alertRepo.update(
+      { user_id: userId },
+      { is_dismissed: true }
+    );
   }
 }
 

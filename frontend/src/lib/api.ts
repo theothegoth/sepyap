@@ -101,6 +101,7 @@ export const api = {
     includeBrands?: string[],
     excludeBrands?: string[],
     strict?: boolean,
+    allowedMarkets?: string[],
   ) => {
     const params: any = { q: query };
     if (limit) params.limit = limit;
@@ -108,11 +109,13 @@ export const api = {
       params.includeBrands = includeBrands.join(',');
     if (excludeBrands && excludeBrands.length > 0)
       params.excludeBrands = excludeBrands.join(',');
+    if (allowedMarkets && allowedMarkets.length > 0)
+      params.allowedMarkets = allowedMarkets.join(',');
     if (strict !== undefined) params.strict = strict ? 'true' : 'false';
 
     const cacheKey = `search:${query}:${limit}:${includeBrands?.join(',')}:${excludeBrands?.join(
       ',',
-    )}:${strict}`;
+    )}:${strict}:${allowedMarkets?.join(',')}`;
 
     return apiCache.get(
       cacheKey,
@@ -224,6 +227,18 @@ export const api = {
       () => axiosInstance.get(`${API_URL}/alerts/${userId}/stats`),
       1 * 60 * 1000,
     );
+  },
+
+  markAllAlertsAsRead: async (userId: string) => {
+    const result = await axiosInstance.post(`${API_URL}/alerts/${userId}/read-all`);
+    apiCache.invalidatePattern(`alerts:${userId}`);
+    return result;
+  },
+
+  dismissAllAlerts: async (userId: string) => {
+    const result = await axiosInstance.post(`${API_URL}/alerts/${userId}/dismiss-all`);
+    apiCache.invalidatePattern(`alerts:${userId}`);
+    return result;
   },
 
   // Admin check (server-side validation)

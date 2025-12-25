@@ -29,6 +29,7 @@ export class MatchingController {
     @Query('limit') limit?: string,
     @Query('includeBrands') includeBrands?: string,
     @Query('excludeBrands') excludeBrands?: string,
+    @Query('allowedMarkets') allowedMarkets?: string,
     @Query('strict') strict?: string,
   ) {
     if (!query) {
@@ -43,8 +44,9 @@ export class MatchingController {
     const limitNum = limit ? parseInt(limit, 10) : 20;
     const includeBrandsList = includeBrands ? includeBrands.split(',').map(b => b.trim()).filter(Boolean) : [];
     const excludeBrandsList = excludeBrands ? excludeBrands.split(',').map(b => b.trim()).filter(Boolean) : [];
+    const allowedMarketsList = allowedMarkets ? allowedMarkets.split(',').map(m => m.trim()).filter(Boolean) : [];
     const isStrict = strict === 'true';
-    const products = await this.matchingService.searchProducts(query, limitNum, includeBrandsList, excludeBrandsList, isStrict);
+    const products = await this.matchingService.searchProducts(query, limitNum, includeBrandsList, excludeBrandsList, isStrict, allowedMarketsList);
     return { products };
   }
 

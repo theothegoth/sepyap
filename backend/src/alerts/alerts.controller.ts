@@ -5,7 +5,7 @@ import { AlertsService } from './alerts.service';
 export class AlertsController {
   private readonly logger = new Logger(AlertsController.name);
 
-  constructor(private readonly alertsService: AlertsService) {}
+  constructor(private readonly alertsService: AlertsService) { }
 
   @Post('watchlist')
   async addToWatchlist(
@@ -65,6 +65,18 @@ export class AlertsController {
   @Get(':userId/stats')
   async getAlertStats(@Param('userId') userId: string) {
     return this.alertsService.getAlertStats(userId);
+  }
+
+  @Post(':userId/read-all')
+  async markAllAsRead(@Param('userId') userId: string) {
+    await this.alertsService.markAllAlertsAsRead(userId);
+    return { success: true };
+  }
+
+  @Post(':userId/dismiss-all')
+  async dismissAllAlerts(@Param('userId') userId: string) {
+    await this.alertsService.dismissAllAlerts(userId);
+    return { success: true };
   }
 }
 

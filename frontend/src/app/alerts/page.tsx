@@ -8,7 +8,7 @@ import { useExtensionCheck } from '../../hooks/useExtensionCheck';
 import ExtensionRequiredModal from '../../components/ExtensionRequiredModal';
 
 function AlertsContent() {
-  const { checkExtension } = useExtensionCheck();
+  const { isExtensionInstalled, checkExtension } = useExtensionCheck();
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,39 +32,56 @@ function AlertsContent() {
 
   useEffect(() => {
     // Check extension before loading
-    if (!checkExtension()) {
+    if (isExtensionInstalled) {
+      loadAlerts();
+      loadStats();
+    } else {
       setShowExtensionModal(true);
       setLoading(false);
-      return;
     }
-    loadAlerts();
-    loadStats();
-  }, [unreadOnly]);
+  }, [unreadOnly, isExtensionInstalled]);
 
   const loadAlerts = async () => {
-    // Check extension again before API call
-    if (!checkExtension()) {
-      setShowExtensionModal(true);
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await api.getAlerts(userId, unreadOnly);
       let alertsData = response.data || [];
-      
+
       // Filter by product if specified
       if (productIdFilter) {
-        alertsData = alertsData.filter((alert: any) => 
+        alertsData = alertsData.filter((alert: any) =>
           alert.watchlist?.product_id === parseInt(productIdFilter)
         );
       }
-      
+
       setAlerts(alertsData);
     } catch (error) {
       console.error('Error loading alerts:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkAllAsReadBulk = async () => {
+    if (!alerts.some(a => !a.is_read)) return;
+    try {
+      await api.markAllAlertsAsRead(userId);
+      loadAlerts();
+      loadStats();
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
+  const handleDismissBulk = async () => {
+    if (alerts.length === 0) return;
+    if (!confirm('Tüm uyarıları kapatmak istediğinize emin misiniz?')) return;
+    try {
+      await api.dismissAllAlerts(userId);
+      loadAlerts();
+      loadStats();
+    } catch (error) {
+      console.error('Error dismissing all alerts:', error);
     }
   };
 
@@ -112,9 +129,9 @@ function AlertsContent() {
 
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      <ExtensionRequiredModal 
-        isOpen={showExtensionModal} 
-        onClose={() => setShowExtensionModal(false)} 
+      <ExtensionRequiredModal
+        isOpen={showExtensionModal}
+        onClose={() => setShowExtensionModal(false)}
       />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -151,17 +168,34 @@ function AlertsContent() {
             </div>
           )}
 
-          {/* Filter */}
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
+          {/* Filter & Bulk Actions */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <label className="flex items-center gap-2 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={unreadOnly}
                 onChange={(e) => setUnreadOnly(e.target.checked)}
-                className="w-4 h-4 text-blue-600 dark:text-blue-400 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="w-4 h-4 text-blue-600 dark:text-blue-400 rounded focus:ring-blue-500 dark:focus:ring-blue-400 transition-all"
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Okunmamış</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Okunmamışları Göster</span>
             </label>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={handleMarkAllAsReadBulk}
+                disabled={!alerts.some(a => !a.is_read)}
+                className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-blue-100 dark:border-blue-900/50"
+              >
+                Tümünü Okundu İşaretle
+              </button>
+              <button
+                onClick={handleDismissBulk}
+                disabled={alerts.length === 0}
+                className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-red-100 dark:border-red-900/50"
+              >
+                Tümünü Kapat
+              </button>
+            </div>
           </div>
         </header>
 
@@ -183,9 +217,8 @@ function AlertsContent() {
             {alerts.map((alert) => (
               <div
                 key={alert.id}
-                className={`card ${
-                  !alert.is_read ? 'border-l-4 border-blue-500 dark:border-blue-400' : ''
-                }`}
+                className={`card ${!alert.is_read ? 'border-l-4 border-blue-500 dark:border-blue-400' : ''
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
