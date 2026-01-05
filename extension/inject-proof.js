@@ -103,6 +103,18 @@
 
       dispatch('sepyapExtensionInstalled');
       dispatch('groceryMatcherExtensionInstalled');
+
+      // Listen for pings (RESTORED SILENTLY)
+      if (!window.__SEPYAP_PING_LISTENER_SET__) {
+        const onPing = () => {
+          dispatch('sepyapExtensionInstalled');
+          dispatch('groceryMatcherExtensionInstalled');
+        };
+
+        window.addEventListener('sepyapPing', onPing);
+        window.addEventListener('groceryMatcherPing', onPing);
+        window.__SEPYAP_PING_LISTENER_SET__ = true;
+      }
     } catch (e) {
       // Silence error
     }

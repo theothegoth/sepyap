@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useRef } from 'react';
 
 const PROOF_KEY = '__SEPYAP_EXTENSION_PROOF__';
@@ -11,6 +9,7 @@ export function useExtensionCheck() {
   const [isExtensionInstalled, setIsExtensionInstalled] = useState<boolean | null>(null);
   const [isDataCollectionEnabled, setIsDataCollectionEnabled] = useState<boolean | null>(null);
   const extensionDetectedRef = useRef<boolean>(false);
+  const hasEverDetectedRef = useRef<boolean>(false);
 
   const checkExtension = (): boolean => {
     // During SSR, window doesn't exist, so return false
@@ -32,6 +31,8 @@ export function useExtensionCheck() {
 
     if (hasExtension) {
       extensionDetectedRef.current = true;
+      hasEverDetectedRef.current = true;
+      setIsExtensionInstalled(true);
 
       // Only set consent status if the extension supports reporting it
       if (finalProof.supportsConsentReporting !== undefined) {
@@ -54,10 +55,13 @@ export function useExtensionCheck() {
         }
       } catch (e) { }
     } else {
-      console.log('[SepYap Hook] Extension NOT detected');
+      // If we've already detected it in this session/mount, don't flip back to false easily
+      // because polling 'window' is unreliable due to isolation
+      if (!hasEverDetectedRef.current) {
+        // We only set to false if we haven't found it yet
+        // This will be overridden by the event listener if the extension responds
+      }
     }
-
-    setIsExtensionInstalled(hasExtension);
 
     return hasExtension || extensionDetectedRef.current;
   };
@@ -74,6 +78,7 @@ export function useExtensionCheck() {
         const stored = sessionStorage.getItem(STORAGE_KEY);
         if (stored === 'true') {
           extensionDetectedRef.current = true;
+          hasEverDetectedRef.current = true;
           setIsExtensionInstalled(true);
         }
 
@@ -82,23 +87,18 @@ export function useExtensionCheck() {
           setIsDataCollectionEnabled(storedConsent === 'true');
         }
       }
-    } catch (e) {
-      // Ignore
-    }
-
-    // Initial check
-    checkExtension();
+    } catch (e) { }
 
     // Listen for extension installation event (both new and legacy)
     const handleExtensionInstalled = (event: any) => {
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
+        hasEverDetectedRef.current = true;
         setIsExtensionInstalled(true);
 
         const isEnabled = event.detail.dataCollectionEnabled === true;
         if (event.detail.supportsConsentReporting !== undefined) {
           setIsDataCollectionEnabled(isEnabled);
-          // Store in sessionStorage
           try {
             if (typeof sessionStorage !== 'undefined') {
               sessionStorage.setItem(CONSENT_STORAGE_KEY, isEnabled ? 'true' : 'false');
@@ -108,14 +108,11 @@ export function useExtensionCheck() {
           setIsDataCollectionEnabled(null);
         }
 
-        // Store in sessionStorage
         try {
           if (typeof sessionStorage !== 'undefined') {
             sessionStorage.setItem(STORAGE_KEY, 'true');
           }
-        } catch (e) {
-          // Ignore storage errors
-        }
+        } catch (e) { }
       }
     };
 
@@ -125,12 +122,33 @@ export function useExtensionCheck() {
     // Initial check
     checkExtension();
 
-    // Less frequent passive check (no ping)
+    // Send a silent ping to ask if the extension is there
+    const sendPing = () => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sepyapPing'));
+        window.dispatchEvent(new CustomEvent('groceryMatcherPing'));
+      }
+    };
+
+    // Send initial ping
+    sendPing();
+
+    // FAIL-SAFE: If after 2 seconds we still have no detection, set to false
+    // to prevent pages from being stuck in "Loading" state
+    const failSafeTimeout = setTimeout(() => {
+      if (!hasEverDetectedRef.current) {
+        setIsExtensionInstalled(false);
+      }
+    }, 2000);
+
+    // Periodic check and ping (very quiet)
     const interval = setInterval(() => {
       checkExtension();
-    }, 10000); // 10 seconds check
+      sendPing();
+    }, 5000);
 
     return () => {
+      clearTimeout(failSafeTimeout);
       clearInterval(interval);
       if (typeof window !== 'undefined') {
         window.removeEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
@@ -141,4 +159,3 @@ export function useExtensionCheck() {
 
   return { isExtensionInstalled, isDataCollectionEnabled, checkExtension };
 }
-
