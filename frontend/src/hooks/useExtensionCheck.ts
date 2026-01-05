@@ -37,7 +37,6 @@ export function useExtensionCheck() {
       if (finalProof.supportsConsentReporting !== undefined) {
         const isEnabled = finalProof.dataCollectionEnabled === true;
         setIsDataCollectionEnabled(isEnabled);
-        console.log(`[SepYap Hook] Extension detected. Consent: ${isEnabled}`);
 
         // Store consent in sessionStorage
         try {
@@ -47,7 +46,6 @@ export function useExtensionCheck() {
         } catch (e) { }
       } else {
         setIsDataCollectionEnabled(null);
-        console.log('[SepYap Hook] Old extension detected (no consent reporting)');
       }
 
       try {
@@ -124,22 +122,13 @@ export function useExtensionCheck() {
     window.addEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
     window.addEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
 
-    // Send a ping to ask if the extension is there
-    const sendPing = () => {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('sepyapPing'));
-        window.dispatchEvent(new CustomEvent('groceryMatcherPing'));
-      }
-    };
+    // Initial check
+    checkExtension();
 
-    // Send initial ping
-    sendPing();
-
-    // Less frequent checks to avoid log spam and overhead
+    // Less frequent passive check (no ping)
     const interval = setInterval(() => {
       checkExtension();
-      sendPing();
-    }, 5000); // 5 seconds interval
+    }, 10000); // 10 seconds check
 
     return () => {
       clearInterval(interval);

@@ -70,8 +70,6 @@
         setProof(document, LEGACY_PROOF_KEY, CUSTOM_LEGACY_PROOF_VALUE);
       }
 
-      console.log(`[SepYap Proof] Extension proof updated. Consent: ${dataCollectionEnabled}`);
-
       // CSP-friendly script injection fallback
       try {
         const scriptId = 'sepyap-extension-proof-script';
@@ -105,22 +103,8 @@
 
       dispatch('sepyapExtensionInstalled');
       dispatch('groceryMatcherExtensionInstalled');
-
-      // Listen for pings (only set up once)
-      if (!window.__SEPYAP_PING_LISTENER_SET__) {
-        const onPing = () => {
-          // This listener now correctly uses the LATEST CUSTOM_PROOF_VALUE
-          // because it's defined in the outer closure.
-          dispatch('sepyapExtensionInstalled');
-          dispatch('groceryMatcherExtensionInstalled');
-        };
-
-        window.addEventListener('sepyapPing', onPing);
-        window.addEventListener('groceryMatcherPing', onPing);
-        window.__SEPYAP_PING_LISTENER_SET__ = true;
-      }
     } catch (e) {
-      console.error('[SepYap Proof] Error in injectProof:', e);
+      // Silence error
     }
   }
 
