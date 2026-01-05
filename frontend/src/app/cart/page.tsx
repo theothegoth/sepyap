@@ -279,6 +279,25 @@ function CartContent() {
     }
   };
 
+  // Reactively show reminder if data collection is disabled in extension
+  useEffect(() => {
+    if (isDataCollectionEnabled === false) {
+      // If extension tells us data collection is off, and we haven't already shown the reminder in this session/state transition
+      // We check if it was explicitly dismissed in THIS specific OFF state
+      const lastConsentState = sessionStorage.getItem('__LAST_CONSENT_STATE__');
+      if (lastConsentState === 'true') {
+        // Transition from ON to OFF: Reset dismissal
+        setIsReminderDismissed(false);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('sepyap_reminder_dismissed');
+        }
+      }
+      sessionStorage.setItem('__LAST_CONSENT_STATE__', 'false');
+    } else if (isDataCollectionEnabled === true) {
+      sessionStorage.setItem('__LAST_CONSENT_STATE__', 'true');
+    }
+  }, [isDataCollectionEnabled]);
+
   return (
     <>
       <StructuredData

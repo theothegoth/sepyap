@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 const PROOF_KEY = '__SEPYAP_EXTENSION_PROOF__';
 const LEGACY_PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
 const STORAGE_KEY = '__SEPYAP_EXTENSION_DETECTED__';
+const CONSENT_STORAGE_KEY = '__SEPYAP_EXTENSION_CONSENT__';
 
 export function useExtensionCheck() {
   const [isExtensionInstalled, setIsExtensionInstalled] = useState<boolean | null>(null);
@@ -37,6 +38,13 @@ export function useExtensionCheck() {
         const isEnabled = finalProof.dataCollectionEnabled === true;
         setIsDataCollectionEnabled(isEnabled);
         console.log(`[SepYap Hook] Extension detected. Consent: ${isEnabled}`);
+
+        // Store consent in sessionStorage
+        try {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(CONSENT_STORAGE_KEY, isEnabled ? 'true' : 'false');
+          }
+        } catch (e) { }
       } else {
         setIsDataCollectionEnabled(null);
         console.log('[SepYap Hook] Old extension detected (no consent reporting)');
@@ -70,6 +78,11 @@ export function useExtensionCheck() {
           extensionDetectedRef.current = true;
           setIsExtensionInstalled(true);
         }
+
+        const storedConsent = sessionStorage.getItem(CONSENT_STORAGE_KEY);
+        if (storedConsent !== null) {
+          setIsDataCollectionEnabled(storedConsent === 'true');
+        }
       }
     } catch (e) {
       // Ignore
@@ -80,12 +93,20 @@ export function useExtensionCheck() {
 
     // Listen for extension installation event (both new and legacy)
     const handleExtensionInstalled = (event: any) => {
+      console.log('[SepYap Hook] Extension event received:', event.detail);
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
         setIsExtensionInstalled(true);
 
+        const isEnabled = event.detail.dataCollectionEnabled === true;
         if (event.detail.supportsConsentReporting !== undefined) {
-          setIsDataCollectionEnabled(event.detail.dataCollectionEnabled === true);
+          setIsDataCollectionEnabled(isEnabled);
+          // Store in sessionStorage
+          try {
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem(CONSENT_STORAGE_KEY, isEnabled ? 'true' : 'false');
+            }
+          } catch (e) { }
         } else {
           setIsDataCollectionEnabled(null);
         }
@@ -107,6 +128,7 @@ export function useExtensionCheck() {
     // Send a ping to ask if the extension is there
     const sendPing = () => {
       if (typeof window !== 'undefined') {
+        console.log('[SepYap Hook] Sending ping');
         window.dispatchEvent(new CustomEvent('sepyapPing'));
         window.dispatchEvent(new CustomEvent('groceryMatcherPing'));
       }

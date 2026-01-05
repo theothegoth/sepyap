@@ -50,7 +50,9 @@
     {
       "matches": [
         "https://sepyap.com/*",
-        "https://www.sepyap.com/*"
+        "https://www.sepyap.com/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
       ],
       "js": [
         "inject-proof.js"
