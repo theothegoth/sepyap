@@ -71,10 +71,16 @@
             try {
               window['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
               window['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
+              window['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
               document['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
               document['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
               // Logging the primary name for verification
-              console.log('[SepYap] Extension proof injected (DataCollection: ${dataCollectionEnabled})');
+              console.log('[SepYap] Extension proof injected:', {
+                installed: true,
+                dataCollectionEnabled: ${dataCollectionEnabled},
+                supportsConsentReporting: true,
+                timestamp: new Date().toLocaleTimeString()
+              });
             } catch(e) {}
           })();
         `;

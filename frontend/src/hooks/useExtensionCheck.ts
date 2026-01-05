@@ -33,22 +33,22 @@ export function useExtensionCheck() {
       extensionDetectedRef.current = true;
 
       // Only set consent status if the extension supports reporting it
-      // This prevents false positives on old versions of the extension
       if (finalProof.supportsConsentReporting !== undefined) {
-        setIsDataCollectionEnabled(finalProof.dataCollectionEnabled === true);
+        const isEnabled = finalProof.dataCollectionEnabled === true;
+        setIsDataCollectionEnabled(isEnabled);
+        console.log(`[SepYap Hook] Extension detected. Consent: ${isEnabled}`);
       } else {
-        // Old extension version found, don't show the reminder as we can't be sure
         setIsDataCollectionEnabled(null);
+        console.log('[SepYap Hook] Old extension detected (no consent reporting)');
       }
 
-      // Store in sessionStorage for persistence
       try {
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem(STORAGE_KEY, 'true');
         }
-      } catch (e) {
-        // Ignore storage errors
-      }
+      } catch (e) { }
+    } else {
+      console.log('[SepYap Hook] Extension NOT detected');
     }
 
     setIsExtensionInstalled(hasExtension);

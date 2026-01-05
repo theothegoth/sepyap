@@ -175,6 +175,16 @@ function CartContent() {
       return;
     }
 
+    // Proactive check for data collection consent
+    if (isDataCollectionEnabled === false) {
+      setShowConsentGuide(true);
+      setIsReminderDismissed(false);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('sepyap_reminder_dismissed');
+      }
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await api.optimize(
@@ -239,7 +249,7 @@ function CartContent() {
     } finally {
       setLoading(false);
     }
-  }, [cart, selectedBrands, excludedBrands, allowedMarkets, checkExtension]);
+  }, [cart, selectedBrands, excludedBrands, allowedMarkets, checkExtension, isDataCollectionEnabled]);
 
   const allMarketNames: string[] = allMarkets;
 
