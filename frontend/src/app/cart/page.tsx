@@ -351,8 +351,21 @@ function CartContent() {
           onClose={() => setShowExtensionModal(false)}
         />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {isExtensionInstalled && isDataCollectionEnabled === false && !isReminderDismissed && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-6 py-8">
+          {(() => {
+            // Diagnostic logging for live environment
+            if (typeof window !== 'undefined' && (window as any).isExtensionInstalled !== undefined) {
+              // Only log once per state change to avoid spam
+              const stateKey = `sepyap_log_${isExtensionInstalled}_${isDataCollectionEnabled}`;
+              if (!(window as any)[stateKey]) {
+                console.log('[SepYap Debug] UI State:', { isExtensionInstalled, isDataCollectionEnabled, isReminderDismissed });
+                (window as any)[stateKey] = true;
+              }
+            }
+            return null;
+          })()}
+
+          {isExtensionInstalled && isDataCollectionEnabled !== true && !isReminderDismissed && (
             <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="text-2xl hidden sm:block">💡</div>
               <div className="flex-1 text-sm text-blue-800 dark:text-blue-200">
