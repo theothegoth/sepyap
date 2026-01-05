@@ -13,7 +13,7 @@ import ProductAutocomplete from '../../components/ProductAutocomplete';
 
 function CartContent() {
   const searchParams = useSearchParams();
-  const { isExtensionInstalled, checkExtension } = useExtensionCheck();
+  const { isExtensionInstalled, isDataCollectionEnabled, checkExtension } = useExtensionCheck();
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [newItem, setNewItem] = useState('');
@@ -266,6 +266,26 @@ function CartContent() {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {isExtensionInstalled && !isDataCollectionEnabled && (
+            <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="text-2xl">💡</div>
+              <div className="flex-1 text-sm text-blue-800 dark:text-blue-200">
+                <p className="font-semibold mb-0.5">Daha İyi Fiyatlar İçin Veri Paylaşımını Açın</p>
+                <p className="opacity-90">
+                  Market sitelerinde gezindikçe fiyatları otomatik güncellememiz için uzantı ayarlarından
+                  <strong> "Veri Toplama İzni"</strong>ni etkinleştirmeniz önerilir.
+                  Bu sayede size her zaman en güncel fiyatları sunabiliriz.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
+              >
+                Ayarları Kontrol Et
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Left: Cart Builder */}
             <div className="card">

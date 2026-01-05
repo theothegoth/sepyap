@@ -8,31 +8,13 @@ const STORAGE_KEY = '__SEPYAP_EXTENSION_DETECTED__';
 
 export function useExtensionCheck() {
   const [isExtensionInstalled, setIsExtensionInstalled] = useState<boolean | null>(null);
+  const [isDataCollectionEnabled, setIsDataCollectionEnabled] = useState<boolean>(false);
   const extensionDetectedRef = useRef<boolean>(false);
 
   const checkExtension = (): boolean => {
     // During SSR, window doesn't exist, so return false
     if (typeof window === 'undefined') {
       return false;
-    }
-
-    // If we've already detected it via event, trust that
-    if (extensionDetectedRef.current) {
-      return true;
-    }
-
-    // Check if we stored the detection in sessionStorage (survives React re-renders)
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored === 'true') {
-          extensionDetectedRef.current = true;
-          setIsExtensionInstalled(true);
-          return true;
-        }
-      }
-    } catch (e) {
-      // sessionStorage might not be available
     }
 
     // Check window object (both new and legacy)
@@ -49,6 +31,7 @@ export function useExtensionCheck() {
 
     if (hasExtension) {
       extensionDetectedRef.current = true;
+      setIsDataCollectionEnabled(!!finalProof.dataCollectionEnabled);
       // Store in sessionStorage for persistence
       try {
         if (typeof sessionStorage !== 'undefined') {
@@ -60,7 +43,6 @@ export function useExtensionCheck() {
     }
 
     setIsExtensionInstalled(hasExtension);
-
 
     return hasExtension || extensionDetectedRef.current;
   };
@@ -92,6 +74,7 @@ export function useExtensionCheck() {
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
         setIsExtensionInstalled(true);
+        setIsDataCollectionEnabled(!!event.detail.dataCollectionEnabled);
         // Store in sessionStorage
         try {
           if (typeof sessionStorage !== 'undefined') {
@@ -121,20 +104,17 @@ export function useExtensionCheck() {
     let checkCount = 0;
     let slowInterval: NodeJS.Timeout | null = null;
     const interval = setInterval(() => {
-      // Only check if we haven't detected it yet
-      if (!extensionDetectedRef.current) {
-        checkExtension();
-        sendPing(); // Also re-send ping
-      }
+      // Only check if we haven't detected it yet (or to update status)
+      checkExtension();
+      sendPing();
+
       checkCount++;
       // After 10 seconds, reduce frequency to every 3 seconds
       if (checkCount > 10 && !slowInterval) {
         clearInterval(interval);
         slowInterval = setInterval(() => {
-          if (!extensionDetectedRef.current) {
-            checkExtension();
-            sendPing();
-          }
+          checkExtension();
+          sendPing();
         }, 3000);
       }
     }, 1000);
@@ -151,6 +131,6 @@ export function useExtensionCheck() {
     };
   }, []);
 
-  return { isExtensionInstalled, checkExtension };
+  return { isExtensionInstalled, isDataCollectionEnabled, checkExtension };
 }
 

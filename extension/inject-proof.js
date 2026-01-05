@@ -19,8 +19,27 @@
   };
 
   // Function to inject proof
-  function injectProof() {
+  async function injectProof() {
     try {
+      // Get consent from storage
+      let dataCollectionEnabled = false;
+      try {
+        const result = await chrome.storage.local.get('dataCollectionConsent');
+        dataCollectionEnabled = !!result.dataCollectionConsent;
+      } catch (e) { }
+
+      const PROOF_VALUE = {
+        installed: true,
+        version: '1.2.0',
+        timestamp: Date.now(),
+        signature: 'sepyap-extension-v1',
+        dataCollectionEnabled: dataCollectionEnabled
+      };
+      const LEGACY_PROOF_VALUE = {
+        ...PROOF_VALUE,
+        signature: 'grocery-matcher-extension-v1'
+      };
+
       // Set the proof in window object
       const setProof = (obj, key, val) => {
         try {
@@ -54,7 +73,7 @@
               document['${PROOF_KEY}'] = ${JSON.stringify(PROOF_VALUE)};
               document['${LEGACY_PROOF_KEY}'] = ${JSON.stringify(LEGACY_PROOF_VALUE)};
               // Logging the primary name for verification
-              console.log('[SepYap] Extension proof injected');
+              console.log('[SepYap] Extension proof injected (DataCollection: ${dataCollectionEnabled})');
             } catch(e) {}
           })();
         `;
@@ -81,6 +100,15 @@
       window.addEventListener('groceryMatcherPing', onPing);
     } catch (e) { }
   }
+
+  // Listen for storage changes to update proof in real-time
+  try {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && (changes.dataCollectionConsent)) {
+        injectProof();
+      }
+    });
+  } catch (e) { }
 
   // Inject immediately if DOM is ready
   if (document.readyState === 'loading') {
