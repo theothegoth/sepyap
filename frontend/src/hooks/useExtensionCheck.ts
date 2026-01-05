@@ -8,7 +8,7 @@ const STORAGE_KEY = '__SEPYAP_EXTENSION_DETECTED__';
 
 export function useExtensionCheck() {
   const [isExtensionInstalled, setIsExtensionInstalled] = useState<boolean | null>(null);
-  const [isDataCollectionEnabled, setIsDataCollectionEnabled] = useState<boolean>(false);
+  const [isDataCollectionEnabled, setIsDataCollectionEnabled] = useState<boolean | null>(null);
   const extensionDetectedRef = useRef<boolean>(false);
 
   const checkExtension = (): boolean => {
@@ -31,7 +31,16 @@ export function useExtensionCheck() {
 
     if (hasExtension) {
       extensionDetectedRef.current = true;
-      setIsDataCollectionEnabled(!!finalProof.dataCollectionEnabled);
+
+      // Only set consent status if the extension supports reporting it
+      // This prevents false positives on old versions of the extension
+      if (finalProof.supportsConsentReporting !== undefined) {
+        setIsDataCollectionEnabled(finalProof.dataCollectionEnabled === true);
+      } else {
+        // Old extension version found, don't show the reminder as we can't be sure
+        setIsDataCollectionEnabled(null);
+      }
+
       // Store in sessionStorage for persistence
       try {
         if (typeof sessionStorage !== 'undefined') {
@@ -74,7 +83,13 @@ export function useExtensionCheck() {
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
         setIsExtensionInstalled(true);
-        setIsDataCollectionEnabled(!!event.detail.dataCollectionEnabled);
+
+        if (event.detail.supportsConsentReporting !== undefined) {
+          setIsDataCollectionEnabled(event.detail.dataCollectionEnabled === true);
+        } else {
+          setIsDataCollectionEnabled(null);
+        }
+
         // Store in sessionStorage
         try {
           if (typeof sessionStorage !== 'undefined') {
@@ -104,7 +119,6 @@ export function useExtensionCheck() {
     let checkCount = 0;
     let slowInterval: NodeJS.Timeout | null = null;
     const interval = setInterval(() => {
-      // Only check if we haven't detected it yet (or to update status)
       checkExtension();
       sendPing();
 

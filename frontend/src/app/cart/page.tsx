@@ -249,6 +249,26 @@ function CartContent() {
     return allowedMarkets.includes(marketName);
   };
 
+  const [isReminderDismissed, setIsReminderDismissed] = useState(false);
+  const [showConsentGuide, setShowConsentGuide] = useState(false);
+
+  useEffect(() => {
+    // Check if reminder was dismissed
+    if (typeof localStorage !== 'undefined') {
+      const dismissed = localStorage.getItem('sepyap_reminder_dismissed');
+      if (dismissed === 'true') {
+        setIsReminderDismissed(true);
+      }
+    }
+  }, []);
+
+  const handleDismissReminder = () => {
+    setIsReminderDismissed(true);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('sepyap_reminder_dismissed', 'true');
+    }
+  };
+
   return (
     <>
       <StructuredData
@@ -259,6 +279,43 @@ function CartContent() {
           description: 'Sepetinizi oluşturun ve tüm marketlerdeki en ucuz seçeneği bulun',
         }}
       />
+
+      {/* Extension Consent Guide Modal */}
+      {showConsentGuide && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 relative">
+            <button
+              onClick={() => setShowConsentGuide(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              ✕
+            </button>
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <span>🛠️</span> Ayarlar Nasıl Yapılır?
+            </h3>
+            <div className="space-y-4 text-gray-700 dark:text-gray-300">
+              <p className="text-sm">Fiyatların otomatik güncellenmesi için şu adımları takip edin:</p>
+              <ol className="list-decimal list-inside space-y-3 text-sm">
+                <li className="pl-1">Tarayıcınızın sağ üst köşesindeki <strong>SepYap</strong> simgesine tıklayın (bulamazsanız 🧩 yapboz simgesine bakın).</li>
+                <li className="pl-1">Açılan pencerede <strong>"Veri Toplama İzni"</strong> yazısının yanındaki anahtarı <span className="text-green-600 font-bold">Mavi / Aktif</span> konuma getirin.</li>
+                <li className="pl-1">İşlem tamam! Marketlerde gezdikçe fiyatlar sistemimizde otomatik güncellenecektir.</li>
+              </ol>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
+                <p className="text-xs text-blue-800 dark:text-blue-300">
+                  <strong>Not:</strong> Bu ayarı açtıktan sonra bu sayfa otomatik olarak güncellenecektir.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowConsentGuide(false)}
+              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold transition-colors"
+            >
+              Anladım
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
         <ExtensionRequiredModal
           isOpen={showExtensionModal}
@@ -266,23 +323,31 @@ function CartContent() {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {isExtensionInstalled && !isDataCollectionEnabled && (
+          {isExtensionInstalled && isDataCollectionEnabled === false && !isReminderDismissed && (
             <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-              <div className="text-2xl">💡</div>
+              <div className="text-2xl hidden sm:block">💡</div>
               <div className="flex-1 text-sm text-blue-800 dark:text-blue-200">
                 <p className="font-semibold mb-0.5">Daha İyi Fiyatlar İçin Veri Paylaşımını Açın</p>
                 <p className="opacity-90">
                   Market sitelerinde gezindikçe fiyatları otomatik güncellememiz için uzantı ayarlarından
                   <strong> "Veri Toplama İzni"</strong>ni etkinleştirmeniz önerilir.
-                  Bu sayede size her zaman en güncel fiyatları sunabiliriz.
                 </p>
               </div>
-              <button
-                onClick={() => window.location.reload()}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
-              >
-                Ayarları Kontrol Et
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowConsentGuide(true)}
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
+                >
+                  Nasıl Yapılır?
+                </button>
+                <button
+                  onClick={handleDismissReminder}
+                  className="text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-300 p-1"
+                  title="Kapat"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 

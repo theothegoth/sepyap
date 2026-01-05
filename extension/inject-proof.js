@@ -33,7 +33,8 @@
         version: '1.2.0',
         timestamp: Date.now(),
         signature: 'sepyap-extension-v1',
-        dataCollectionEnabled: dataCollectionEnabled
+        dataCollectionEnabled: dataCollectionEnabled,
+        supportsConsentReporting: true
       };
       const LEGACY_PROOF_VALUE = {
         ...PROOF_VALUE,
