@@ -7,14 +7,19 @@
   // Set a proof that the extension is installed
   const PROOF_KEY = '__SEPYAP_EXTENSION_PROOF__';
   const LEGACY_PROOF_KEY = '__GROCERY_MATCHER_EXTENSION_PROOF__';
-  const PROOF_VALUE = {
+
+  // Shared state that is updated by injectProof and read by ping listeners
+  let CUSTOM_PROOF_VALUE = {
     installed: true,
     version: '1.2.0',
     timestamp: Date.now(),
-    signature: 'sepyap-extension-v1'
+    signature: 'sepyap-extension-v1',
+    dataCollectionEnabled: false,
+    supportsConsentReporting: true
   };
-  const LEGACY_PROOF_VALUE = {
-    ...PROOF_VALUE,
+
+  let CUSTOM_LEGACY_PROOF_VALUE = {
+    ...CUSTOM_PROOF_VALUE,
     signature: 'grocery-matcher-extension-v1'
   };
 
@@ -28,7 +33,8 @@
         dataCollectionEnabled = !!result.dataCollectionConsent;
       } catch (e) { }
 
-      const PROOF_VALUE = {
+      // Update shared state
+      CUSTOM_PROOF_VALUE = {
         installed: true,
         version: '1.2.0',
         timestamp: Date.now(),
@@ -36,8 +42,9 @@
         dataCollectionEnabled: dataCollectionEnabled,
         supportsConsentReporting: true
       };
-      const LEGACY_PROOF_VALUE = {
-        ...PROOF_VALUE,
+
+      CUSTOM_LEGACY_PROOF_VALUE = {
+        ...CUSTOM_PROOF_VALUE,
         signature: 'grocery-matcher-extension-v1'
       };
 
@@ -55,15 +62,15 @@
         }
       };
 
-      setProof(window, PROOF_KEY, PROOF_VALUE);
-      setProof(window, LEGACY_PROOF_KEY, LEGACY_PROOF_VALUE);
+      setProof(window, PROOF_KEY, CUSTOM_PROOF_VALUE);
+      setProof(window, LEGACY_PROOF_KEY, CUSTOM_LEGACY_PROOF_VALUE);
 
       if (typeof document !== 'undefined') {
-        setProof(document, PROOF_KEY, PROOF_VALUE);
-        setProof(document, LEGACY_PROOF_KEY, LEGACY_PROOF_VALUE);
+        setProof(document, PROOF_KEY, CUSTOM_PROOF_VALUE);
+        setProof(document, LEGACY_PROOF_KEY, CUSTOM_LEGACY_PROOF_VALUE);
       }
 
-      console.log(`[SepYap Proof] Extension ${PROOF_VALUE.version} detected. Consent: ${dataCollectionEnabled}`);
+      console.log(`[SepYap Proof] Extension proof updated. Consent: ${dataCollectionEnabled}`);
 
       // CSP-friendly script injection fallback
       try {
@@ -76,24 +83,22 @@
         script.textContent = `
           (function() {
             try {
-              const val = ${JSON.stringify(PROOF_VALUE)};
-              const legacyVal = ${JSON.stringify(LEGACY_PROOF_VALUE)};
+              const val = ${JSON.stringify(CUSTOM_PROOF_VALUE)};
+              const legacyVal = ${JSON.stringify(CUSTOM_LEGACY_PROOF_VALUE)};
               window['${PROOF_KEY}'] = val;
               window['${LEGACY_PROOF_KEY}'] = legacyVal;
               document['${PROOF_KEY}'] = val;
               document['${LEGACY_PROOF_KEY}'] = legacyVal;
-              console.log('[SepYap] Extension proof injected via script tag. Consent: ${dataCollectionEnabled}');
             } catch(e) {}
           })();
         `;
         (document.head || document.documentElement).appendChild(script);
-        // We keep it for a moment then remove it, but for real-time reactivity, maybe we don't need to remove it immediately
         setTimeout(() => script.remove(), 100);
       } catch (e) { }
 
       // Dispatch custom events
       const dispatch = (name) => {
-        const event = new CustomEvent(name, { detail: PROOF_VALUE });
+        const event = new CustomEvent(name, { detail: CUSTOM_PROOF_VALUE });
         window.dispatchEvent(event);
         document.dispatchEvent(event);
       };
@@ -101,10 +106,11 @@
       dispatch('sepyapExtensionInstalled');
       dispatch('groceryMatcherExtensionInstalled');
 
-      // Listen for pings
+      // Listen for pings (only set up once)
       if (!window.__SEPYAP_PING_LISTENER_SET__) {
         const onPing = () => {
-          console.log('[SepYap Proof] Received ping, responding with proof');
+          // This listener now correctly uses the LATEST CUSTOM_PROOF_VALUE
+          // because it's defined in the outer closure.
           dispatch('sepyapExtensionInstalled');
           dispatch('groceryMatcherExtensionInstalled');
         };
@@ -127,7 +133,7 @@
     });
   } catch (e) { }
 
-  // Inject immediately if DOM is ready
+  // Inject immediately
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', injectProof);
   } else {

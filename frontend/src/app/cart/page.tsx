@@ -331,7 +331,7 @@ function CartContent() {
               </ol>
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
                 <p className="text-xs text-blue-800 dark:text-blue-300">
-                  <strong>Not:</strong> Bu ayarı açtıktan sonra bu sayfa otomatik olarak güncellenecektir.
+                  <strong>Not:</strong> Bu ayarı açtıktan sonra fiyatlar otomatik olarak sistemimize yansıyacaktır.
                 </p>
               </div>
             </div>
@@ -365,7 +365,7 @@ function CartContent() {
             return null;
           })()}
 
-          {isExtensionInstalled && isDataCollectionEnabled !== true && !isReminderDismissed && (
+          {isExtensionInstalled && isDataCollectionEnabled !== true && (
             <div className="mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="text-2xl hidden sm:block">💡</div>
               <div className="flex-1 text-sm text-blue-800 dark:text-blue-200">
@@ -381,13 +381,6 @@ function CartContent() {
                   className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
                 >
                   Nasıl Yapılır?
-                </button>
-                <button
-                  onClick={handleDismissReminder}
-                  className="text-blue-400 hover:text-blue-600 dark:text-blue-500 dark:hover:text-blue-300 p-1"
-                  title="Kapat"
-                >
-                  ✕
                 </button>
               </div>
             </div>

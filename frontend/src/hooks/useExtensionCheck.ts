@@ -93,7 +93,6 @@ export function useExtensionCheck() {
 
     // Listen for extension installation event (both new and legacy)
     const handleExtensionInstalled = (event: any) => {
-      console.log('[SepYap Hook] Extension event received:', event.detail);
       if (event.detail && event.detail.installed === true) {
         extensionDetectedRef.current = true;
         setIsExtensionInstalled(true);
@@ -128,7 +127,6 @@ export function useExtensionCheck() {
     // Send a ping to ask if the extension is there
     const sendPing = () => {
       if (typeof window !== 'undefined') {
-        console.log('[SepYap Hook] Sending ping');
         window.dispatchEvent(new CustomEvent('sepyapPing'));
         window.dispatchEvent(new CustomEvent('groceryMatcherPing'));
       }
@@ -137,29 +135,14 @@ export function useExtensionCheck() {
     // Send initial ping
     sendPing();
 
-    // More frequent checks initially, then less frequent
-    let checkCount = 0;
-    let slowInterval: NodeJS.Timeout | null = null;
+    // Less frequent checks to avoid log spam and overhead
     const interval = setInterval(() => {
       checkExtension();
       sendPing();
-
-      checkCount++;
-      // After 10 seconds, reduce frequency to every 3 seconds
-      if (checkCount > 10 && !slowInterval) {
-        clearInterval(interval);
-        slowInterval = setInterval(() => {
-          checkExtension();
-          sendPing();
-        }, 3000);
-      }
-    }, 1000);
+    }, 5000); // 5 seconds interval
 
     return () => {
       clearInterval(interval);
-      if (slowInterval) {
-        clearInterval(slowInterval);
-      }
       if (typeof window !== 'undefined') {
         window.removeEventListener('sepyapExtensionInstalled', handleExtensionInstalled);
         window.removeEventListener('groceryMatcherExtensionInstalled', handleExtensionInstalled);
