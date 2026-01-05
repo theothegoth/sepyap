@@ -329,11 +329,6 @@ function CartContent() {
                 <li className="pl-1">Açılan pencerede <strong>"Veri Toplama İzni"</strong> yazısının yanındaki anahtarı <span className="text-green-600 font-bold">Mavi / Aktif</span> konuma getirin.</li>
                 <li className="pl-1">İşlem tamam! Marketlerde gezdikçe fiyatlar sistemimizde otomatik güncellenecektir.</li>
               </ol>
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
-                <p className="text-xs text-blue-800 dark:text-blue-300">
-                  <strong>Not:</strong> Bu ayarı açtıktan sonra fiyatlar otomatik olarak sistemimize yansıyacaktır.
-                </p>
-              </div>
             </div>
             <button
               onClick={() => setShowConsentGuide(false)}
