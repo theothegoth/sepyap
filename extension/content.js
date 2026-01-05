@@ -8,24 +8,27 @@ let scanTimeout;
 let lastScanTime = 0;
 let isScanning = false; // Flag to prevent multiple simultaneous scans
 
+console.log('[SepYap] Content script loaded on ' + window.location.hostname);
+
+
 /**
  * Extract products from the current page
  * Returns array of products
  */
 function extractProducts() {
   const parser = getParser();
-  
+
   if (!parser) {
-    
+
     return [];
   }
 
   const pageType = parser.detectPageType();
-  
+
 
   try {
     const cards = parser.getProductCards();
-    
+
 
     const products = [];
     const seen = new Set();
@@ -33,10 +36,10 @@ function extractProducts() {
 
     for (const card of cards) {
       debugStats.total++;
-      
+
       try {
         const product = parser.extractProductData(card);
-        
+
         if (product) {
           // Deduplicate by title + price + URL
           const key = `${product.title}_${product.price}_${product.product_url}`;
@@ -45,7 +48,7 @@ function extractProducts() {
             products.push(product);
             debugStats.success++;
           } else {
-            
+
           }
         } else {
           debugStats.failed++;
@@ -55,7 +58,7 @@ function extractProducts() {
         debugStats.failed++;
       }
     }
-    
+
     // Log extraction stats
     console.log(`[SepYap] Extraction complete:`, {
       totalCards: cards.length,
@@ -63,7 +66,7 @@ function extractProducts() {
       failed: debugStats.failed,
       uniqueProducts: products.length
     });
-    
+
     // Log first few products for debugging (with full structure)
     if (products.length > 0) {
       console.log(`[SepYap] Sample products:`, products.slice(0, 3).map(p => ({
@@ -88,7 +91,7 @@ function extractProducts() {
  */
 async function sendData(products) {
   if (!products || (Array.isArray(products) && products.length === 0)) {
-    
+
     return;
   }
 
@@ -96,7 +99,7 @@ async function sendData(products) {
   try {
     const consent = await chrome.storage.local.get('dataCollectionConsent');
     if (!consent.dataCollectionConsent) {
-      
+
       return;
     }
   } catch (error) {
@@ -106,16 +109,16 @@ async function sendData(products) {
 
   // Normalize to array if single product
   const productsArray = Array.isArray(products) ? products : [products];
-  
+
   console.log(`[SepYap] Sending ${productsArray.length} products to backend...`);
-  
+
   // Check if extension context is still valid before sending message
   if (!chrome.runtime?.id) {
     const error = new Error('Extension context invalidated');
     console.warn('[SepYap] Extension context invalidated, cannot send products');
     return Promise.reject(error);
   }
-  
+
   // Convert callback to Promise to properly await completion
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({
@@ -132,7 +135,7 @@ async function sendData(products) {
         reject(chrome.runtime.lastError);
         return;
       }
-      
+
       if (response && response.status === 'success') {
         console.log(`[SepYap] Successfully sent to backend:`, {
           created: response.data?.created || 0,
@@ -158,7 +161,7 @@ async function runScan() {
     console.log(`[SepYap] Scan already in progress, skipping...`);
     return;
   }
-  
+
   // Check consent first
   try {
     // Check if extension context is still valid
@@ -166,10 +169,10 @@ async function runScan() {
       console.warn('[SepYap] Extension context invalidated, skipping scan');
       return;
     }
-    
+
     const consent = await chrome.storage.local.get('dataCollectionConsent');
     if (!consent.dataCollectionConsent) {
-      
+      console.log('[SepYap] Tarama atlandı: Veri toplama onayı verilmemiş. Lütfen uzantı popup\'ından etkinleştirin.');
       return;
     }
   } catch (error) {
@@ -185,18 +188,18 @@ async function runScan() {
   // Rate limiting: Don't scan too frequently
   const now = Date.now();
   const timeSinceLastScan = now - lastScanTime;
-  
+
   if (timeSinceLastScan < MIN_SCAN_INTERVAL) {
-    
+
     return;
   }
-  
+
   lastScanTime = now;
   isScanning = true; // Set flag to prevent concurrent scans
-  
+
   try {
     console.log(`[SepYap] Starting scan...`);
-    
+
     // Extract products
     const products = extractProducts();
     if (products.length > 0) {
@@ -211,7 +214,7 @@ async function runScan() {
 
 // Auto-scan on page load
 window.addEventListener('load', () => {
-  
+
   clearTimeout(scanTimeout);
   scanTimeout = setTimeout(runScan, AUTO_SCAN_DELAY);
 });
@@ -225,7 +228,7 @@ window.addEventListener('scroll', () => {
     lastScrollTime = now;
     clearTimeout(scanTimeout);
     scanTimeout = setTimeout(() => {
-      
+
       runScan();
     }, SCROLL_SCAN_DELAY);
   }
@@ -234,8 +237,8 @@ window.addEventListener('scroll', () => {
 // Manual capture via popup
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.action === 'captureProducts') {
-    
-    
+
+
     // Check consent
     try {
       const consent = await chrome.storage.local.get('dataCollectionConsent');
@@ -247,7 +250,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       sendResponse({ status: 'error', message: 'Error checking consent' });
       return;
     }
-    
+
     // Extract products
     const products = extractProducts();
     if (products.length > 0) {
@@ -279,7 +282,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       sendResponse({ product: null });
     }
   }
-  
+
   // Return true to indicate async response
   return true;
 });

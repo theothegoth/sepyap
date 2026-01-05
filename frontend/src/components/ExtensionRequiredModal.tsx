@@ -20,7 +20,7 @@ export default function ExtensionRequiredModal({ isOpen, onClose }: ExtensionReq
             Lütfen SepYap Chrome uzantısını yükleyin.
           </p>
         </div>
-        
+
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 text-left">
           <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">Kurulum Adımları:</h3>
           <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800 dark:text-blue-300">
@@ -38,10 +38,10 @@ export default function ExtensionRequiredModal({ isOpen, onClose }: ExtensionReq
         </button>
 
         <button
-          onClick={() => window.open('chrome://extensions/', '_blank')}
+          onClick={() => window.open('https://chromewebstore.google.com/detail/sepyap/nbfpjohcofimjpakhlellglacjojafel', '_blank')}
           className="w-full btn-secondary text-sm"
         >
-          Open Extensions Page
+          Eklenti Sayfasını Aç
         </button>
       </div>
     </div>
