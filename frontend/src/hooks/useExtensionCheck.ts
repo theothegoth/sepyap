@@ -116,11 +116,19 @@ export function useExtensionCheck() {
 
         // Notify extension about the current backend URL
         try {
-          const apiBase = (window as any).NEXT_PUBLIC_API_URL || '';
-          // Note: we can't easily import from lib/api here without circularity sometimes
-          // but we can try to find it or just dispatch what we know.
+          const { hostname, protocol, port } = window.location;
+          let backendUrl = window.location.origin;
+
+          // If we are on the frontend port (3001), the backend is likely on 3000
+          if (port === '3001') {
+            backendUrl = `${protocol}//${hostname}:3000`;
+          } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            // Local development fallback
+            backendUrl = `${protocol}//${hostname}:3005`;
+          }
+
           window.dispatchEvent(new CustomEvent('sepyapSetBackendUrl', {
-            detail: { url: window.location.origin }
+            detail: { url: backendUrl }
           }));
         } catch (e) { }
       }
