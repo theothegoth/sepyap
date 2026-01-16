@@ -113,6 +113,17 @@
 
         window.addEventListener('sepyapPing', onPing);
         window.addEventListener('groceryMatcherPing', onPing);
+
+        // Listen for backend URL set event from the website
+        window.addEventListener('sepyapSetBackendUrl', (event) => {
+          if (event.detail && event.detail.url) {
+            chrome.runtime.sendMessage({
+              action: 'setBackendUrl',
+              url: event.detail.url
+            });
+          }
+        });
+
         window.__SEPYAP_PING_LISTENER_SET__ = true;
       }
     } catch (e) {

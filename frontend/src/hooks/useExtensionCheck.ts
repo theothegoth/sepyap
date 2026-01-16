@@ -113,6 +113,16 @@ export function useExtensionCheck() {
             sessionStorage.setItem(STORAGE_KEY, 'true');
           }
         } catch (e) { }
+
+        // Notify extension about the current backend URL
+        try {
+          const apiBase = (window as any).NEXT_PUBLIC_API_URL || '';
+          // Note: we can't easily import from lib/api here without circularity sometimes
+          // but we can try to find it or just dispatch what we know.
+          window.dispatchEvent(new CustomEvent('sepyapSetBackendUrl', {
+            detail: { url: window.location.origin }
+          }));
+        } catch (e) { }
       }
     };
 

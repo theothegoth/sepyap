@@ -4,9 +4,37 @@ import { apiCache } from './apiCache';
 // API URL configuration
 const getApiUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && !envUrl.includes('backend')) {
+  const isBrowser = typeof window !== 'undefined';
+  const currentHostname = isBrowser ? window.location.hostname : '';
+  const protocol = isBrowser ? window.location.protocol : 'http:';
+
+  const isInternalOrOldIP = (url: string) => {
+    if (!url) return true;
+    if (url.includes('backend:')) return true; // Docker internal
+    if (url.includes('127.0.0.1') || url.includes('localhost')) {
+      return currentHostname !== 'localhost' && currentHostname !== '127.0.0.1';
+    }
+    // Eğer URL bir IP içeriyorsa ve o IP şu anki host değilse eski kalmış olabilir
+    const ipMatch = url.match(/\d+\.\d+\.\d+\.\d+/);
+    if (ipMatch && currentHostname && !currentHostname.includes(ipMatch[0])) {
+      return true;
+    }
+    return false;
+  };
+
+  // Eğer çevresel değişken varsa ve geçerli/güncel bir URL gibi duruyorsa kullan
+  if (envUrl && envUrl.startsWith('http') && !isInternalOrOldIP(envUrl)) {
     return envUrl;
   }
+
+  // Tahmin yürüt
+  if (isBrowser) {
+    if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
+      return 'http://127.0.0.1:3005/api';
+    }
+    return `${protocol}//${currentHostname}:3000/api`;
+  }
+
   return 'http://127.0.0.1:3005/api';
 };
 

@@ -17,32 +17,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       batches.push(request.products.slice(i, i + BATCH_SIZE));
     }
 
-    // Determine backend URL based on environment
-    // If we're on sepyap.com, use production API; otherwise use localhost
-    let backendUrl = 'https://api.sepyap.com/api/ingest'; // Default to production
-
-    // Check if we're on localhost (for development)
-    if (sender && sender.tab && sender.tab.url) {
-      try {
-        const url = new URL(sender.tab.url);
-        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-          backendUrl = 'http://127.0.0.1:3005/api/ingest';
-        }
-      } catch (e) {
-        // If URL parsing fails, use production default
-      }
-    }
-
-    // Send all batches sequentially
     let completedBatches = 0;
     let totalCreated = 0;
     let totalUpdated = 0;
     let totalErrors = 0;
 
-    const sendBatch = async (batchIndex, retryCount = 0) => {
+    // Define sendBatch function *inside* this scope to access variables like batches, sendResponse, etc.
+    const sendBatch = async (batchIndex, retryCount = 0, backendUrl) => {
       if (batchIndex >= batches.length) {
         // All batches sent
-
         sendResponse({
           status: 'success',
           data: {
@@ -103,7 +86,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if ((response.status === 504 || response.status === 503) && retryCount < MAX_RETRIES) {
             console.warn(`[SepYap Background] Batch ${batchIndex + 1} failed with ${response.status}, retrying in ${RETRY_DELAY}ms...`);
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1))); // Exponential backoff
-            return sendBatch(batchIndex, retryCount + 1);
+            return sendBatch(batchIndex, retryCount + 1, backendUrl); // Pass backendUrl
           }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -149,7 +132,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         completedBatches++;
         // Send next batch after a delay to avoid overwhelming the server and prevent timeout
         // Increased delay to give backend more time to process each batch
-        setTimeout(() => sendBatch(batchIndex + 1), 500); // 500ms delay between batches
+        setTimeout(() => sendBatch(batchIndex + 1, 0, backendUrl), 500); // 500ms delay between batches
       } catch (error) {
         if (error.name === 'AbortError') {
           console.error(`Timeout sending batch ${batchIndex + 1} (${batch.length} products)`);
@@ -159,13 +142,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         totalErrors += batch.length;
         // Continue with next batch even if this one failed
         // Increased delay to give backend more time to recover
-        setTimeout(() => sendBatch(batchIndex + 1), 1000); // 1 second delay after error
+        setTimeout(() => sendBatch(batchIndex + 1, 0, backendUrl), 1000); // 1 second delay after error
       }
     };
 
-    // Start sending batches
-    sendBatch(0);
+    // Determine backend URL based on environment
+    // 1. Check if we have a saved custom backend URL (learned from visiting the site)
+    // 2. Check if we're on localhost
+    // 3. Default to production
+
+    chrome.storage.local.get(['customBackendUrl'], (result) => {
+      let backendUrl = result.customBackendUrl || 'https://api.sepyap.com/api/ingest';
+
+      // Check if we're on localhost (for development)
+      if (sender && sender.tab && sender.tab.url) {
+        try {
+          const url = new URL(sender.tab.url);
+          if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+            // For localhost, we might still want to use the specific dev port
+            backendUrl = 'http://127.0.0.1:3005/api/ingest';
+          }
+        } catch (e) { }
+      }
+
+      // Ensure /api/ingest suffix
+      if (backendUrl && !backendUrl.endsWith('/api/ingest')) {
+        backendUrl = backendUrl.replace(/\/$/, '') + '/api/ingest';
+      }
+
+      // Start sending batches with the determined backendUrl
+      sendBatch(0, 0, backendUrl);
+    });
 
     return true; // Keep the message channel open for async response
+  }
+
+  if (request.action === 'setBackendUrl') {
+    const { url } = request;
+    if (url) {
+      console.log(`[SepYap Background] Learning custom backend URL: ${url}`);
+      chrome.storage.local.set({ customBackendUrl: url });
+      sendResponse({ status: 'success' });
+    }
+    return true;
   }
 });
