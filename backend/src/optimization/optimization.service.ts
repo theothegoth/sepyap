@@ -169,7 +169,7 @@ export class OptimizationService {
         // matchingService.searchProducts() returns potential matching Products
         const products = await this.matchingService.searchProducts(
           item.query,
-          5,
+          50, // Increased from 5 to 50 to find cheaper alternatives that might be less relevant by keyword
           [], // includeBrands
           [], // excludeBrands
           true // strict mode: use exact word matching (quotes)
@@ -301,8 +301,8 @@ export class OptimizationService {
           ? parseFloat(b.price_card.toString())
           : parseFloat(b.price.toString());
 
-        const efficiencyA = this.calculateEfficiency(priceA, a.property);
-        const efficiencyB = this.calculateEfficiency(priceB, b.property);
+        const efficiencyA = this.calculateEfficiency(priceA, a.property, a.title);
+        const efficiencyB = this.calculateEfficiency(priceB, b.property, b.title);
 
         if (efficiencyA !== null && efficiencyB !== null) {
           return efficiencyA - efficiencyB;
@@ -607,12 +607,13 @@ export class OptimizationService {
   }
 
   /**
-   * Calculate price per unit (efficiency) from property string
+   * Calculate price per unit (efficiency) from property string or title
    */
-  private calculateEfficiency(price: number, property: string | null): number | null {
-    if (!property) return null;
+  private calculateEfficiency(price: number, property: string | null, title: string = ''): number | null {
+    const textToParse = (property || title || '').toLowerCase().trim();
+    if (!textToParse) return null;
 
-    const normalized = property.toLowerCase().trim();
+    const normalized = textToParse;
 
     // multi-pack: "3 x 210 G"
     const multiPackMatch = normalized.match(/(\d+)\s*x\s*(\d+)\s*(g|kg|ml|l|gr|lt)/);
